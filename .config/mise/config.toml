@@ -1,0 +1,67 @@
+#
+# FILE: .config/mise/config.toml
+#
+# DESCRIPTION:
+# This is the central configuration file for the Mise tool manager. It defines the project's
+# toolset and declaratively manages environment variables, including secrets.
+
+# --- Env Configuration ---
+#
+# This section declaratively sets up the application environment. Mise
+# loads these files in order. It has native SOPS support and will automatically
+# decrypt `.env.sops.yaml` in memory before loading its variables.
+#
+[env]
+MISE_SOPS_AGE_KEY_FILE = "{{config_root}}/.config/sops/age/keys.txt"
+VALE_CONFIG_PATH = "{{config_root}}/.config/vale/vale.ini"
+_.file = [
+    "{{config_root}}/.config/mise/.env",
+    { path = "{{config_root}}/.config/mise/.env.sops.yaml", redact = true }
+]
+
+# Optionally add additional directories to $PATH
+# Use `tools = true` to add to $PATH *after* tools have defined env vars / sourced scripts;
+#   eg. `_.path = { path = ["{{env.GEM_HOME}}/bin"], tools = true }`
+#   eg. `_.source = { path = "my/env.sh", tools = true }
+#
+_.path = [
+    "{{config_root}}/.config/mise/bin"
+]
+
+# Optionally configure Python venv management
+# _.python.venv = { path = ".venv", create = false, uv_create_args = ['--seed'] }
+
+# --- Mise Configuration ---
+[settings]
+experimental = true
+sops.age_key_file = "{{config_root}}/.config/sops/age/keys.txt"
+sops.rops = false
+sops.strict = true  # Fail loudly if secrets cannot be decrypted (DDD finding G). In-container the project key is staged to the XDG default before mise activates; on the host the user key (a co-recipient) decrypts.
+
+# --- Tasks ---
+[task_config]
+includes = [
+    ".config/mise/tasks"
+]
+
+# --- Tools ---
+#
+# Defining tool versions here ensures every developer uses the exact same dependencies.
+# Run `mise install` to automatically provision these versions. 
+# Run `mise ls-remote <tool>` to get latest, or `mise upgrade --bump` to automatically upgrade all.
+#
+[tools]
+age = "latest"
+bats = "latest"
+clusterctl = "latest"
+hadolint = "latest"
+helm = "latest"
+jq = "latest"
+kind = "latest"
+kubectl = "latest"
+lefthook = "latest"
+lychee = "latest"
+sops = "latest"
+talosctl = "latest"
+vale = "latest"
+yq = "latest"

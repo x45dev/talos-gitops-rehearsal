@@ -1,0 +1,85 @@
+# FILE: .config/mise/tasks/lint.toml
+#
+# DESCRIPTION:
+# Project linting tasks. All sub-linters are hidden (hide = true); run the aggregate
+# `mise run lint` (alias `l`). Task names are colon-namespaced (`lint:*`) so they are
+# visually distinct from user-level inherited tasks.
+
+["lint:hadolint"]
+description = "Linter: Check Dockerfile for best practices with hadolint."
+hide = true
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if [ -f ".devcontainer/Dockerfile" ]; then
+  hadolint .devcontainer/Dockerfile
+else
+  echo "⚠️  .devcontainer/Dockerfile not found, skipping hadolint"
+fi
+"""
+
+["lint:links"]
+description = "Linter: Check for broken markdown links across the repo."
+hide = true
+raw = true
+run = "lychee **/*.md"
+sources = ["**/*.md"]
+
+["lint:md"]
+description = "Markdown: Auto-fix em dashes and structural issues (markdownlint-cli2)."
+hide = true
+run = """
+#!/usr/bin/env -S bash -euo pipefail
+find . -name "*.md" \
+  -not -path "*/.git/*" \
+  -not -path "*/node_modules/*" \
+  -not -path "*/.claude/*" \
+  -exec sed -i 's/—/-/g' {} +
+npx --yes markdownlint-cli2 --config .config/markdownlint/config.yaml "**/*.md" "#.git/**" "#node_modules/**" "#.claude/**"
+"""
+sources = ["**/*.md", ".config/markdownlint/config.yaml"]
+
+["lint:vale"]
+description = "Markdown prose: Validate with vale (em dash, custom RKA rules)."
+hide = true
+depends = ["lint:md"]
+run = """
+#!/usr/bin/env -S bash -euo pipefail
+mapfile -t md_files < <(find . -name "*.md" \
+  -not -path "*/.git/*" \
+  -not -path "*/node_modules/*" \
+  -not -path "*/.claude/*")
+vale "${md_files[@]}"
+"""
+sources = ["**/*.md", ".config/vale/**"]
+
+["lint:shellcheck"]
+description = "Linter: Statically analyze shell scripts with shellcheck."
+hide = true
+run = "shellcheck $(find . -type f -name \"*.sh\")"
+sources = ["**/*.sh"]
+
+["lint:shfmt"]
+description = "Linter: Check shell script formatting with shfmt."
+hide = true
+run = "shfmt -w -i 2 -ci -sr ."  # -w autofixes; use -d to error with a diff instead.
+sources = ["**/*.sh", ".config/mise/bin/*"]
+
+["lint:frontmatter"]
+description = "Linter: Validate frontmatter in knowledge/ markdown documents (RFC-003 section 3)."
+hide = true
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if [ -d "knowledge" ] && [ -f "scripts/validate-frontmatter.sh" ]; then
+  scripts/validate-frontmatter.sh
+else
+  echo "⚠️  No knowledge/ directory or scripts/validate-frontmatter.sh, skipping frontmatter lint"
+fi
+"""
+sources = ["knowledge/**/*.md"]
+
+[lint]
+description = "Run all project linters in parallel."
+alias = "l"
+depends = ["lint:shfmt", "lint:shellcheck", "lint:hadolint", "lint:links", "lint:vale", "lint:frontmatter", "backend:lint", "frontend:lint"]

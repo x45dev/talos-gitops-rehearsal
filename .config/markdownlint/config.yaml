@@ -1,0 +1,17 @@
+# FILE: .config/markdownlint/.markdownlint-cli2.yaml
+#
+# DESCRIPTION:
+# markdownlint-cli2 configuration for this project. Relocated under .config/ (not
+# repo root) and passed explicitly via `markdownlint-cli2 --config` from the mise
+# `lint:md` task, so the repo root stays free of tool dotfiles.
+config:
+  default: true
+  MD013:          # Line length - disable; sentence-per-line produces variable-length lines
+    enabled: false
+  MD025:          # Multiple H1s - front_matter_title disabled; docs have YAML title + body H1 by design
+    front_matter_title: ""
+  MD033:          # Inline HTML - disable; docs may use HTML for tables/details
+    enabled: false
+  MD041:          # First line must be heading - disable; not all docs start with h1
+    enabled: false
+fix: true

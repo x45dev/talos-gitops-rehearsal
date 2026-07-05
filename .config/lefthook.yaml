@@ -1,0 +1,64 @@
+#
+# FILE: .config/lefthook.yaml
+#
+# DESCRIPTION:
+# This file defines the Git hooks that Lefthook manages. It now calls the
+# centralized `mise` tasks to ensure consistency with the CI pipeline.
+#
+assert_lefthook_installed: true
+colors: true
+fail_on_error: true
+
+#
+# HOOK: pre-commit
+#
+# DESCRIPTION:
+# This hook ensures code health and guards against secret exposure before 
+# changes are safely packaged into a git commit state.
+#
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      run: mise run lint
+
+    # 🔒 GUARD 1: Prevent accidentally committing the raw plaintext template files
+    secrets-leak-guard:
+      files: git status --porcelain
+      run: |
+        if git status --porcelain | grep -q ".config/mise/.env.yaml$"; then
+          echo "❌ ERROR: Plaintext secrets file (.env.yaml) is staged or modified!" >&2
+          echo "💡 Fix: Run 'mise run secrets' to encrypt it, or remove it from tracking." >&2
+          exit 1
+        fi
+
+    # 🔒 GUARD 2: Prevent accidentally committing raw AGE private key text files
+    keys-leak-guard:
+      files: git status --porcelain
+      run: |
+        if git status --porcelain | grep -E -q "(\.config/sops/age/keys\.txt|\.devcontainer/runtime/keys\.txt)$"; then
+          echo "❌ ERROR: Private AGE key file (keys.txt) is tracked, staged, or modified!" >&2
+          echo "💡 Fix: Run 'git rm --cached <file>' and ensure they are added to your .gitignore file." >&2
+          exit 1
+        fi
+
+    # 🔑 VALIDATE: Confirm the active key can encrypt/decrypt files seamlessly
+    sops-integrity-check:
+      run: mise run sops:project:test-config
+
+#
+# HOOK: pre-push
+#
+# DESCRIPTION:
+# This hook runs a full build of the devcontainer image to ensure no breaking
+# changes are pushed to the repository. NOTE: This can be a slow operation,
+# but it provides a strong guarantee that the development environment remains stable.
+#
+#pre-push:
+#  parallel: true
+#  commands:
+#    devcontainer-build:
+#      run: |
+#        echo "Performing pre-push devcontainer build check..."
+#        docker compose -f .devcontainer/docker-compose.yml build
+#

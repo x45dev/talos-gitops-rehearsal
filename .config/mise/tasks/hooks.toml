@@ -1,0 +1,15 @@
+# FILE: .config/mise/tasks/hooks.toml
+#
+# DESCRIPTION:
+# Git-hook management via Lefthook.
+
+["hooks:verify"]
+alias = "hooks"
+description = "Git Hooks: Synchronize Lefthook and manually run the pre-commit pipeline."
+run = """
+#!/usr/bin/env -S bash -euo pipefail
+echo "🔄 Step 1: Synchronizing Lefthook configuration with Git hooks..."
+lefthook install
+echo -e "\n🛡️ Step 2: Running manual pre-commit pipeline check..."
+lefthook run pre-commit
+"""

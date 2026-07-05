@@ -1,0 +1,8 @@
+# FILE: .config/mise/tasks/app.toml
+#
+# DESCRIPTION:
+# Application-level orchestration tasks.
+
+["app:start"]
+description = "Start the app via Docker Compose."
+run = "docker compose up --build"

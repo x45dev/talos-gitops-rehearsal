@@ -1,0 +1,15 @@
+# Editors / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# Claude Code local cache
+**/.claude/.enforce-cache.json
+
+# Secrets (AGE/SOPS private keys - never commit plaintext key material)
+.config/sops/age/keys.txt
+.config/mise/.env.yaml
+
+# Host-specific devcontainer env (seeded from .env.example by initialize.sh; never committed)
+.devcontainer/.env

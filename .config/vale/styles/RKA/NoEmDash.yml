@@ -1,0 +1,6 @@
+extends: existence
+message: "Use plain dash '-' instead of em dash '—' (U+2014)"
+level: error
+nonword: true
+tokens:
+  - '—'
