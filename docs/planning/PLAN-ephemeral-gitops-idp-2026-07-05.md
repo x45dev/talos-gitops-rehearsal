@@ -2,7 +2,7 @@
 id: PLAN-ephemeral-gitops-idp
 title: Implementation plan - Ephemeral GitOps IDP (Local Edition)
 status: draft
-version: 0.4.0
+version: 0.5.0
 date: 2026-07-06
 ---
 
@@ -86,14 +86,12 @@ Upstream evidence says this combination works (siderolabs/talos discussion #9849
 
 ## Phase 1 - Resolve the devcontainer gap (decision, simplified by the re-frame)
 
-`setup.toml` references `.devcontainer/scripts/bootstrap.sh`, which does not exist (known deferred gap).
-The re-frame shrinks this question: with no management cluster and no CAPD, the only Docker requirement is that `talosctl`'s provisioner reach a Docker daemon - the socket-mount topology that made DinD subtle is gone.
+**Status: done (2026-07-06).**
 
-- **Decision:** does v1 run inside a devcontainer (isolation, reproducibility) or host-native `mise` (simpler)?
-- Recommendation: decide right after Phase 0; host-native is now the cheaper default since the toolchain is fully mise-managed and the Docker interaction is a single daemon socket.
-- If devcontainer: it still needs a short spec (DinD vs socket passthrough for the Talos node containers), but it is no longer load-bearing for the architecture.
-- Regardless of the decision, rewire or remove every dangling `.devcontainer` reference in this phase - `setup:project`'s `.devcontainer/scripts/bootstrap.sh` and `test:devcontainer`'s `bats .devcontainer/tests/` both point at paths that do not exist.
-  Phase 2 depends on the AGE identity `setup:project` was meant to bootstrap (the standalone `sops:project:generate-keypair` task covers it today, so this is a rough edge, not a blocker).
+- **Decision made: host-native `mise`, not a devcontainer.**
+  The toolchain is fully mise-managed and the only Docker requirement is that `talosctl`'s provisioner reach a Docker daemon - a single daemon socket, not the DinD socket-mount topology that made a devcontainer subtle under CAPD.
+  No devcontainer spec is needed for v1; revisit only if a concrete cross-machine reproducibility problem shows up later.
+- **Dangling `.devcontainer` references resolved:** removed `setup:project` (`.config/mise/tasks/setup.toml`) and `test:devcontainer` (`.config/mise/tasks/test.toml`) outright rather than rewiring them - both files' entire content was the broken reference, both pointed at paths that never existed, and neither has a replacement need under host-native: `sops:project:generate-keypair` already covers the AGE key bootstrap `setup:project` was meant to provide, and there is no devcontainer configuration left to validate with a BATS suite.
 
 ## Phase 2 - GitOps repository structure (single loop)
 
@@ -164,15 +162,16 @@ Deliberately unscheduled; triggered by a real CAPA/cloud deployment getting plan
 
 1. **Local substrate (2026-07-06):** `talosctl cluster create` (Docker provisioner); CAPI deferred to Milestone M-CAPI.
    Decided via zoom-out (`ZOR-ephemeral-gitops-idp-2026-07-06.md`): CAPI-locally was a means to workflow parity, container fidelity suffices for v1, Docker-only is a hard host-dependency line (which independently eliminated the Incus option, whose Talos template is CI-untested and VM-based).
+2. **Devcontainer vs host-native for v1 (2026-07-06):** host-native `mise`.
+   The toolchain is fully mise-managed and the only Docker requirement is `talosctl`'s provisioner reaching a single daemon socket, so the devcontainer's isolation/reproducibility upside no longer offsets its setup cost; see Phase 1 status above.
 
 **Open:**
 
-1. **Devcontainer vs host-native for v1** (Phase 1) - simplified by the re-frame; recommendation: host-native default, decide after Phase 0.
-2. **Flux source and local iteration loop** (Phase 2, step 4) - repo visibility/auth plus the uncommitted-changes workflow.
-3. **Gate 3 LB reachability mechanism** (Cilium L2 announcement policy vs a host route toward the pool; the `CiliumLoadBalancerIPPool` itself is mandatory for LB-IPAM, not part of the decision) - resolve empirically at Phase 0 gate 3.
-4. **State persistence** (PRD Section 6) - only if re-hydrating data across ephemeral cycles becomes a real need; no v1 work.
+1. **Flux source and local iteration loop** (Phase 2, step 4) - repo visibility/auth plus the uncommitted-changes workflow.
+2. **Gate 3 LB reachability mechanism** (Cilium L2 announcement policy vs a host route toward the pool; the `CiliumLoadBalancerIPPool` itself is mandatory for LB-IPAM, not part of the decision) - resolve empirically at Phase 0 gate 3.
+3. **State persistence** (PRD Section 6) - only if re-hydrating data across ephemeral cycles becomes a real need; no v1 work.
 
 ## Immediate next action
 
-Phase 0 is done (green, 2026-07-06 - see Phase 0 status above).
-Next: decide devcontainer vs host-native (Phase 1, Decisions item 1), then start Phase 2's `clusters/workload/` structure.
+Phase 0 and Phase 1 are done (green, 2026-07-06 - see status above).
+Next: start Phase 2's `clusters/workload/` structure.

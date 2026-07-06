@@ -1,8 +1,0 @@
-# FILE: .config/mise/tasks/setup.toml
-#
-# DESCRIPTION:
-# One-time host-side project setup (run on the host before starting the devcontainer).
-
-["setup:project"]
-description = "Interactive first-run setup for AGE key generation. Run on the host."
-file = ".devcontainer/scripts/bootstrap.sh"
