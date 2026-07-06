@@ -14,6 +14,11 @@
 [env]
 MISE_SOPS_AGE_KEY_FILE = "{{config_root}}/.config/sops/age/keys.txt"
 VALE_CONFIG_PATH = "{{config_root}}/.config/vale/vale.ini"
+# {{config_root}} only expands here in the [env] table (Tera-templated by mise itself).
+# Files loaded via _.file below are parsed as plain dotenv, so the same token there is
+# literal text, not a path - keep any {{config_root}}-relative path vars up here instead.
+KUBECONFIG_WORK = "{{config_root}}/.kube-workload.config"
+TALOSCONFIG = "{{config_root}}/.talosconfig"
 _.file = [
     "{{config_root}}/.config/mise/.env",
     { path = "{{config_root}}/.config/mise/.env.sops.yaml", redact = true }
@@ -53,11 +58,9 @@ includes = [
 [tools]
 age = "latest"
 bats = "latest"
-clusterctl = "latest"
 hadolint = "latest"
 helm = "latest"
 jq = "latest"
-kind = "latest"
 kubectl = "latest"
 lefthook = "latest"
 lychee = "latest"
