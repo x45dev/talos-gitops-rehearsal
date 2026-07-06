@@ -38,7 +38,14 @@ else
 fi
 
 echo "=> Waiting for the Kubernetes API to serve (not node readiness - no CNI yet)..."
+attempt=1
+max_attempts=90
 until kubectl get --raw='/readyz' >/dev/null 2>&1; do
+    if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "❌ Kubernetes API did not become ready after ${max_attempts} attempts." >&2
+        exit 1
+    fi
+    attempt=$((attempt + 1))
     sleep 2
 done
 echo "✅ Kubernetes API is serving."
@@ -220,6 +227,7 @@ echo "✅ LoadBalancer IP $EXTERNAL_IP reachable from host."
 description = "Destroy the Talos cluster and verify zero residue"
 run = """
 #!/usr/bin/env bash
+set -e
 echo "=> Destroying Talos cluster '$CLUSTER_NAME'..."
 talosctl cluster destroy --name "$CLUSTER_NAME"
 
