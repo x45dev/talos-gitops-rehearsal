@@ -133,9 +133,73 @@ spec:
 EOF
 """
 
-["test-talos-spike:validate"]
-description = "4. Run the three verification gates"
+["test-talos-spike:flux-bootstrap"]
+description = "4. Install Flux, inject secrets, and hand Cilium day-2 management to Git"
 depends = ["test-talos-spike:cilium"]
+run = """
+#!/usr/bin/env bash
+set -e
+export KUBECONFIG=$KUBECONFIG_WORK
+
+echo "=> Installing Flux controllers (from the checked-in, version-pinned export)..."
+kubectl apply -f clusters/workload/flux-system/gotk-components.yaml
+kubectl wait --for=condition=available --timeout=3m -n flux-system deployment --all
+
+echo "=> Injecting sops-age secret (reuses the existing project AGE key, no new key material)..."
+kubectl create secret generic sops-age -n flux-system \
+  --from-file=age.agekey=.config/sops/age/keys.txt \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+echo "=> Injecting git-credentials secret (deploy key, decrypted in-memory via mise/SOPS - never written to disk)..."
+# known_hosts comes from GitHub's published Meta API, not a live ssh-keyscan TOFU probe
+# (https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+GITHUB_KNOWN_HOSTS=$(curl -s https://api.github.com/meta | jq -r '.ssh_keys[]' | sed 's/^/github.com /')
+kubectl create secret generic git-credentials -n flux-system \
+  --from-literal=identity="$FLUX_GIT_DEPLOY_KEY" \
+  --from-literal=known_hosts="$GITHUB_KNOWN_HOSTS" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+echo "=> Applying GitRepository + root Kustomization..."
+kubectl apply -f clusters/workload/flux-system/gotk-sync.yaml
+
+echo "=> Waiting for the root Kustomization to reconcile..."
+kubectl wait --for=condition=ready kustomization/flux-system -n flux-system --timeout=5m
+echo "✅ Flux is reconciling clusters/workload from Git."
+"""
+
+["test-talos-spike:verify-adoption"]
+description = "5. Verify Flux adopted the running Cilium release in place (no destructive reinstall)"
+depends = ["test-talos-spike:flux-bootstrap"]
+run = """
+#!/usr/bin/env bash
+set -e
+export KUBECONFIG=$KUBECONFIG_WORK
+
+echo "=> Waiting for the Cilium HelmRelease to report Ready..."
+kubectl wait --for=condition=ready helmrelease/cilium -n kube-system --timeout=5m
+
+echo "=> Checking helm release history for a destructive reinstall..."
+HISTORY_JSON=$(helm history cilium -n kube-system -o json)
+REVISIONS=$(echo "$HISTORY_JSON" | jq 'length')
+if [ "$REVISIONS" -lt 1 ]; then
+    echo "❌ No helm release history found for 'cilium' in kube-system - adoption did not happen as expected." >&2
+    exit 1
+fi
+if echo "$HISTORY_JSON" | jq -r '.[].status' | grep -q "^uninstalled$"; then
+    echo "❌ Release history shows an 'uninstalled' revision - Flux performed a destructive reinstall instead of an in-place upgrade." >&2
+    exit 1
+fi
+
+echo "=> Confirming Cilium agents and nodes are still healthy after adoption..."
+kubectl wait --for=condition=Ready pod -l k8s-app=cilium -n kube-system --timeout=3m
+kubectl wait --for=condition=Ready node --all --timeout=3m
+
+echo "✅ Cilium HelmRelease adopted the existing release in place ($REVISIONS revision(s) recorded, none uninstalled)."
+"""
+
+["test-talos-spike:validate"]
+description = "6. Run the three verification gates"
+depends = ["test-talos-spike:flux-bootstrap"]
 run = """
 #!/usr/bin/env bash
 set -e
@@ -260,5 +324,5 @@ echo "🧹 Environment wiped clean, zero residue confirmed."
 
 ["test-talos-spike:all"]
 description = "Run the entire spike test"
-depends = ["test-talos-spike:validate"]
+depends = ["test-talos-spike:validate", "test-talos-spike:verify-adoption"]
 run = "echo 'Spike test execution complete.'"

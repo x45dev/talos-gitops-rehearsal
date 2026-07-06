@@ -1,0 +1,46 @@
+# Canonical Cilium values - the single source of truth for both the imperative
+# bootstrap install (`test-talos-spike:cilium`, `helm upgrade -f` this file) and the
+# Flux HelmRelease (via the ConfigMap this kustomization.yaml generates from it).
+# Keeping one file is a hard precondition (plan Phase 2 step 5): if bootstrap and the
+# HelmRelease ever diverge, the first Flux reconcile after adoption would upgrade
+# Cilium with different values than what's running, restarting the CNI underneath the
+# controller performing the adoption.
+#
+# Chart *version* (1.18.11) is NOT here - Helm/Flux structurally require it as a
+# separate field (`helm upgrade --version` / `HelmRelease.spec.chart.spec.version`),
+# not a value. Keep both in sync; each carries a comment pointing at the other.
+#
+# Rationale for each value: see `.config/mise/tasks/test-talos-spike.toml`'s `cilium`
+# task, which carries the live-verified explanation (KubePrism endpoint, Talos
+# capability set, Cilium 1.19-vs-1.18.11 DNS-break history, gate 3 LB reachability).
+kubeProxyReplacement: true
+k8sServiceHost: localhost
+k8sServicePort: 7445
+ipam:
+  mode: kubernetes
+cgroup:
+  autoMount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup
+securityContext:
+  capabilities:
+    ciliumAgent:
+      - CHOWN
+      - KILL
+      - NET_ADMIN
+      - NET_RAW
+      - IPC_LOCK
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    cleanCiliumState:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_RESOURCE
+l2announcements:
+  enabled: true
+externalIPs:
+  enabled: true

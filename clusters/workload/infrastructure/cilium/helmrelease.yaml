@@ -1,0 +1,29 @@
+# releaseName/targetNamespace/storageNamespace are pinned to match the imperative
+# `helm upgrade --install cilium cilium/cilium --namespace kube-system` in
+# `test-talos-spike:cilium` exactly - this is what lets helm-controller adopt the
+# already-running release as an in-place upgrade instead of fighting or replacing it
+# (plan Phase 2 step 5).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cilium
+  namespace: kube-system
+spec:
+  interval: 10m
+  releaseName: cilium
+  targetNamespace: kube-system
+  storageNamespace: kube-system
+  chart:
+    spec:
+      chart: cilium
+      # Keep in sync with the `--version` flag in test-talos-spike.toml's `cilium`
+      # task - see that file's ADR-linked comment for why 1.18.11, not 1.19.x.
+      version: "1.18.11"
+      sourceRef:
+        kind: HelmRepository
+        name: cilium
+        namespace: kube-system
+  valuesFrom:
+    - kind: ConfigMap
+      name: cilium-values
+      valuesKey: values.yaml
