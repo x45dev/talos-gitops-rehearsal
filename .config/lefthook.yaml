@@ -36,7 +36,7 @@ pre-commit:
     keys-leak-guard:
       files: git status --porcelain
       run: |
-        if git status --porcelain | grep -E -q "(\.config/sops/age/keys\.txt|\.devcontainer/runtime/keys\.txt)$"; then
+        if git status --porcelain | grep -E -q "\.config/sops/age/keys\.txt$"; then
           echo "❌ ERROR: Private AGE key file (keys.txt) is tracked, staged, or modified!" >&2
           echo "💡 Fix: Run 'git rm --cached <file>' and ensure they are added to your .gitignore file." >&2
           exit 1

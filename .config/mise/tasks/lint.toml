@@ -5,19 +5,6 @@
 # `mise run lint` (alias `l`). Task names are colon-namespaced (`lint:*`) so they are
 # visually distinct from user-level inherited tasks.
 
-["lint:hadolint"]
-description = "Linter: Check Dockerfile for best practices with hadolint."
-hide = true
-run = """
-#!/usr/bin/env bash
-set -euo pipefail
-if [ -f ".devcontainer/Dockerfile" ]; then
-  hadolint .devcontainer/Dockerfile
-else
-  echo "⚠️  .devcontainer/Dockerfile not found, skipping hadolint"
-fi
-"""
-
 ["lint:links"]
 description = "Linter: Check for broken markdown links across the repo."
 hide = true
@@ -82,4 +69,4 @@ sources = ["knowledge/**/*.md"]
 [lint]
 description = "Run all project linters in parallel."
 alias = "l"
-depends = ["lint:shfmt", "lint:shellcheck", "lint:hadolint", "lint:links", "lint:vale", "lint:frontmatter", "backend:lint", "frontend:lint"]
+depends = ["lint:shfmt", "lint:shellcheck", "lint:links", "lint:vale", "lint:frontmatter", "backend:lint", "frontend:lint"]
