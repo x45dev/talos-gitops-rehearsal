@@ -45,20 +45,3 @@ pre-commit:
     # 🔑 VALIDATE: Confirm the active key can encrypt/decrypt files seamlessly
     sops-integrity-check:
       run: mise run sops:project:test-config
-
-#
-# HOOK: pre-push
-#
-# DESCRIPTION:
-# This hook runs a full build of the devcontainer image to ensure no breaking
-# changes are pushed to the repository. NOTE: This can be a slow operation,
-# but it provides a strong guarantee that the development environment remains stable.
-#
-#pre-push:
-#  parallel: true
-#  commands:
-#    devcontainer-build:
-#      run: |
-#        echo "Performing pre-push devcontainer build check..."
-#        docker compose -f .devcontainer/docker-compose.yml build
-#
