@@ -41,7 +41,7 @@ See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requiremen
 ### Development Tasks
 
 ```bash
-mise run lint             # Run all linters (shfmt, shellcheck, hadolint, links, vale, markdownlint)
+mise run lint             # Run all linters (shfmt, shellcheck, links, vale, markdownlint)
 mise run hooks             # Sync Lefthook and run the pre-commit pipeline manually
 mise run sops:project:manage   # Create/edit the encrypted project secrets file
 mise run app:start         # Start the app via Docker Compose

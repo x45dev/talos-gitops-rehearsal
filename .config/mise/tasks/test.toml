@@ -1,9 +1,0 @@
-# FILE: .config/mise/tasks/test.toml
-#
-# DESCRIPTION:
-# Test and language-runtime validation tasks.
-
-["test:devcontainer"]
-description = "Run the automated BATS suite validating devcontainer configuration."
-alias = "t"
-run = "bats .devcontainer/tests/"

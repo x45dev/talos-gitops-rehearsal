@@ -36,7 +36,7 @@ pre-commit:
     keys-leak-guard:
       files: git status --porcelain
       run: |
-        if git status --porcelain | grep -E -q "(\.config/sops/age/keys\.txt|\.devcontainer/runtime/keys\.txt)$"; then
+        if git status --porcelain | grep -E -q "\.config/sops/age/keys\.txt$"; then
           echo "❌ ERROR: Private AGE key file (keys.txt) is tracked, staged, or modified!" >&2
           echo "💡 Fix: Run 'git rm --cached <file>' and ensure they are added to your .gitignore file." >&2
           exit 1
@@ -45,20 +45,3 @@ pre-commit:
     # 🔑 VALIDATE: Confirm the active key can encrypt/decrypt files seamlessly
     sops-integrity-check:
       run: mise run sops:project:test-config
-
-#
-# HOOK: pre-push
-#
-# DESCRIPTION:
-# This hook runs a full build of the devcontainer image to ensure no breaking
-# changes are pushed to the repository. NOTE: This can be a slow operation,
-# but it provides a strong guarantee that the development environment remains stable.
-#
-#pre-push:
-#  parallel: true
-#  commands:
-#    devcontainer-build:
-#      run: |
-#        echo "Performing pre-push devcontainer build check..."
-#        docker compose -f .devcontainer/docker-compose.yml build
-#
