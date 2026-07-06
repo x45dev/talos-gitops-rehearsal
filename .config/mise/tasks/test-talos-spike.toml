@@ -59,44 +59,57 @@ run = """
 set -e
 export KUBECONFIG=$KUBECONFIG_WORK
 
-echo "=> Installing/Updating Cilium via Helm..."
-helm repo add cilium https://helm.cilium.io/
-helm repo update
+# Once test-talos-spike:flux-bootstrap has run, helm-controller (Flux) owns this
+# release's underlying objects via server-side-apply field ownership. Re-running the
+# imperative `helm upgrade --install` below against an adopted release then contests
+# those same fields with a different field manager and fails outright (confirmed live,
+# 2026-07-06: "Apply failed with 1 conflict: conflict with helm-controller"). Detect
+# adoption and skip straight to the health checks - day-2 Cilium changes flow through
+# Git from here on (plan Phase 2 step 5), never this task.
+if kubectl get helmrelease cilium -n kube-system >/dev/null 2>&1; then
+    echo "=> Cilium HelmRelease already exists in kube-system - Flux has adopted this release. Skipping imperative helm upgrade."
+else
+    echo "=> Installing/Updating Cilium via Helm..."
+    helm repo add cilium https://helm.cilium.io/
+    helm repo update
 
-# KubePrism (on by default in Talos 1.13) exposes a stable, in-node API endpoint at
-# localhost:7445 - pods inside the nodes cannot reach the host-published kubeconfig
-# port the CAPD-era task used, but every node can always reach its own KubePrism.
-# cgroup/security-context values and the explicit capability list come from Sidero's
-# Cilium-on-Talos guide: Talos forbids workload kernel-module loading, so Cilium's
-# default capability set does not carry over.
-# Pinned to 1.18.11, not 1.19.x: verified live (2026-07-06) that Cilium 1.19.5 +
-# kubeProxyReplacement=true on Talos 1.13.5 breaks host-network DNS resolution
-# node-wide (containerd image pulls and even hostNetwork pods time out resolving
-# via the node's own 127.0.0.11 embedded resolver) - this is the exact symptom
-# cilium/cilium#46010 documents. 1.18.11 is the pinned fallback per Phase 0 step 3.
-helm upgrade --install cilium cilium/cilium --version 1.18.11 \
-  --namespace kube-system \
-  --set kubeProxyReplacement=true \
-  --set k8sServiceHost=localhost \
-  --set k8sServicePort=7445 \
-  --set ipam.mode=kubernetes \
-  --set cgroup.autoMount.enabled=false \
-  --set cgroup.hostRoot=/sys/fs/cgroup \
-  --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
-  --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
-  --set l2announcements.enabled=true \
-  --set externalIPs.enabled=true
+    # KubePrism (on by default in Talos 1.13) exposes a stable, in-node API endpoint at
+    # localhost:7445 - pods inside the nodes cannot reach the host-published kubeconfig
+    # port the CAPD-era task used, but every node can always reach its own KubePrism.
+    # cgroup/security-context values and the explicit capability list come from Sidero's
+    # Cilium-on-Talos guide: Talos forbids workload kernel-module loading, so Cilium's
+    # default capability set does not carry over.
+    # Pinned to 1.18.11, not 1.19.x: verified live (2026-07-06) that Cilium 1.19.5 +
+    # kubeProxyReplacement=true on Talos 1.13.5 breaks host-network DNS resolution
+    # node-wide (containerd image pulls and even hostNetwork pods time out resolving
+    # via the node's own 127.0.0.11 embedded resolver) - this is the exact symptom
+    # cilium/cilium#46010 documents. 1.18.11 is the pinned fallback per Phase 0 step 3.
+    # NB: keep in sync with clusters/workload/infrastructure/cilium/values.yaml and
+    # helmrelease.yaml - same values/version, so Flux's later adoption is a no-op.
+    helm upgrade --install cilium cilium/cilium --version 1.18.11 \
+      --namespace kube-system \
+      --set kubeProxyReplacement=true \
+      --set k8sServiceHost=localhost \
+      --set k8sServicePort=7445 \
+      --set ipam.mode=kubernetes \
+      --set cgroup.autoMount.enabled=false \
+      --set cgroup.hostRoot=/sys/fs/cgroup \
+      --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
+      --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
+      --set l2announcements.enabled=true \
+      --set externalIPs.enabled=true
 
-# The Cilium chart does not annotate the agent DaemonSet with a config-checksum, so a
-# `helm upgrade` that changes agent-level flags (like enable-l2-announcements) updates
-# the ConfigMap but leaves already-running agents on their old flags until restarted
-# (confirmed live via the agent's own config-drift-checker warning). Unconditionally
-# restarting costs one DaemonSet rollout (~15-20s) even on a no-op re-run, which is
-# cheap next to correctness: detecting drift reliably would mean parsing agent state
-# from inside each pod, which is worse than paying the fixed cost every time.
-echo "=> Restarting Cilium agents to pick up any config changes..."
-kubectl rollout restart daemonset/cilium -n kube-system
-kubectl rollout status daemonset/cilium -n kube-system --timeout=3m
+    # The Cilium chart does not annotate the agent DaemonSet with a config-checksum, so a
+    # `helm upgrade` that changes agent-level flags (like enable-l2-announcements) updates
+    # the ConfigMap but leaves already-running agents on their old flags until restarted
+    # (confirmed live via the agent's own config-drift-checker warning). Unconditionally
+    # restarting costs one DaemonSet rollout (~15-20s) even on a no-op re-run, which is
+    # cheap next to correctness: detecting drift reliably would mean parsing agent state
+    # from inside each pod, which is worse than paying the fixed cost every time.
+    echo "=> Restarting Cilium agents to pick up any config changes..."
+    kubectl rollout restart daemonset/cilium -n kube-system
+    kubectl rollout status daemonset/cilium -n kube-system --timeout=3m
+fi
 
 echo "=> Waiting for Cilium to report Ready..."
 kubectl wait --for=condition=Ready pod -l k8s-app=cilium -n kube-system --timeout=5m
