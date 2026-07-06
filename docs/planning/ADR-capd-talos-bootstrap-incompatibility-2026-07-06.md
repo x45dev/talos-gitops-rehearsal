@@ -1,0 +1,67 @@
+---
+id: ADR-capd-talos-bootstrap-incompatibility
+title: Drop CAPD for local Talos provisioning - bootstrap mechanism is incompatible
+status: draft
+version: 1.0.0
+date: 2026-07-06
+---
+
+# ADR - CAPD is architecturally incompatible with Talos's bootstrap providers
+
+## Status
+
+Draft (decision made, not yet ratified into a merged PRD/plan revision at the time of writing).
+
+## Context
+
+The v1 local loop was designed around a management `kind` cluster running Cluster API (CAPI) with the Docker infrastructure provider (CAPD) and the Talos bootstrap/control-plane providers (CABPT/CACPPT), on the premise that a locally CAPI-managed target cluster would rehearse the same provisioning wiring later used against a cloud (CAPA) target.
+
+A live probe against the running `capi-test` management cluster on 2026-07-06 authored a bespoke CAPD+Talos template, fixed a patch-format rejection (`DataSecretGenerationFailed: JSON6902 patches are not supported for multi-document machine configuration`) by switching to Talos `strategicPatches`, and confirmed `BootstrapConfigReady` reached `True`.
+The next failure was architectural rather than a template defect: the new control-plane Machine failed with
+
+```text
+failed to exec DockerMachine bootstrap: failed to join a control plane node with kubeadm: invalid character 'v' looking for beginning of value
+```
+
+confirmed via `kubectl -n capd-system logs deploy/capd-controller-manager`.
+
+## Decision
+
+Root cause: CAPD's `DockerMachine` controller unconditionally execs the bootstrap-provider secret as a kubeadm join script inside the running `kindest/node` container.
+Talos's bootstrap providers instead generate a full Talos machine-config YAML, meant to be consumed by an actual Talos-OS process at boot, never exec'd post-boot.
+The observed error is CAPD's kubeadm-join-script parser JSON-decoding the literal byte `v` from Talos's YAML `version: ...` header.
+
+This is not fixable by template authoring:
+
+* `DockerMachineTemplate.spec.template.spec.customImage` exists, but CAPD's bootstrap-exec code path runs unconditionally regardless of image, so pointing it at a Talos OS image alone does not change the behavior.
+* A survey of Sidero's own CABPT/CACPPT repos and docs found no documented Docker+CAPD combination anywhere; every quickstart/example targets AWS, GCP, Metal, Proxmox, or Incus/LXD.
+
+We drop CAPD/CABPT/CACPPT from the local v1 provisioning loop entirely.
+The local Talos target is provisioned directly with `talosctl cluster create` (Talos's native Docker provisioner, Sidero's primary local quickstart path), which handles its own bootstrap and requires no CAPI machinery.
+Full CAPI (a management cluster, CAPD/CABPT/CACPPT, and the outer Flux-to-CAPI loop) is deferred to a future milestone, to be re-introduced only when a real cloud (CAPA) target exists.
+
+This decision was reached via the 2026-07-06 zoom-out review (`ZOR-ephemeral-gitops-idp-2026-07-06.md`), which scored four framings by disconfirmation (ACH) and found this option (H2) the only one with zero inconsistencies against the evidence, including a diagnostic interview establishing that local CAPI was a means to workflow parity rather than a terminal goal, and that a Docker-only host dependency is a hard constraint.
+
+## Alternatives considered
+
+1. **Swap the infrastructure provider to `cluster-api-provider-incus`** (keeps the full CAPI/CABPT/CACPPT chain, Incus/LXD containers can run genuine Talos).
+   Rejected: the project's Docker-only host constraint is a hard line and Incus/LXD would violate it; the Incus Talos template is additionally CI-untested ("could be broken", per its own maintainers), VM-based (not container-based, contrary to how it is described), version-skewed against this project's Talos pin, and ships a haproxy single point of failure.
+2. **Keep CAPD, drop Talos from the local loop** (kubeadm-based local cluster, Talos reserved for cloud only).
+   Rejected: abandons the "Talos locally" fidelity goal entirely, which the PRD's interview confirmed the author still wants (container fidelity, not VM or kubeadm, is acceptable - a kubeadm substitute is not).
+3. **Wait for upstream CAPD to support non-kubeadm bootstrap data.**
+   Rejected: no evidence this is planned or in progress upstream; blocks the project indefinitely on an external dependency outside this project's control.
+
+## Consequences
+
+* The local v1 loop no longer rehearses a CAPI-management-cluster-to-target reconciliation cycle; only the Flux workflow and the application/workload overlay carry over unchanged to the future cloud deployment (see `PRD.md` Section 5, the CAPI-consumability contract).
+* The management `kind` cluster loses its v1 job entirely - there is no CAPI to host, so SOPS/AGE identity injection retargets directly to the single Talos target cluster.
+* The repository layout stays CAPI-shaped (`clusters/management/`, `clusters/workload/`) for the day a cloud target exists, but `clusters/management/` is unused and unpopulated in v1.
+* Residual risk: without a live CAPI consumer, the workload-overlay's CAPI-consumability contract can drift silently.
+  Mitigation: keep a written "what CAPI will consume" note alongside the overlay when it is first built (Phase 2), and give the base/overlay boundary a doubt-driven-development review before it stands.
+* No further changes should be made to `.config/capi/capd-talos-template.yaml` or the CAPD-specific `mise` tasks; that code path is dead for v1, not merely paused.
+
+## References
+
+* `PLAN-ephemeral-gitops-idp-2026-07-05.md` - live-probe log of the blocker chain (Docker socket, provisioning races, patch-format fix, then this finding).
+* `ZOR-ephemeral-gitops-idp-2026-07-06.md` - comparative evidence matrix (ACH) and diagnostic interview behind this decision.
+* `PRD.md` Section 6 - spike status reclassification.
