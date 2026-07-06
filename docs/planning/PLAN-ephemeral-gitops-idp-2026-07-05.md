@@ -2,7 +2,7 @@
 id: PLAN-ephemeral-gitops-idp
 title: Implementation plan - Ephemeral GitOps IDP (Local Edition)
 status: draft
-version: 0.3.0
+version: 0.4.0
 date: 2026-07-06
 ---
 
@@ -33,15 +33,17 @@ What the two probe sessions established, and what carries forward:
 - **Carries forward: the idempotency patterns and the mise env fix.**
   Detect-the-actual-precondition-and-self-heal (never fixed sleeps), `kubectl wait --for=create` for resources that appear asynchronously, and the `{{config_root}}` env-templating fix (Tera templating only applies in `config.toml`'s `[env]` table, not in plain dotenv files - `KUBECONFIG_*`/`TALOSCONFIG` moved accordingly).
   One exception is on record: the CAPD-era `validate` task contains a fixed `sleep 15` before a single-shot LoadBalancer-IP read, which is below this bar - it gets fixed in the Phase 0 rewrite, not carried forward.
-- **Obsolete once Phase 0 is green (remove then, not before):**
+- **Obsolete once Phase 0 is green - removed (2026-07-06):**
   `.config/capi/capd-talos-template.yaml`, the docker-socket kind config in `.config/kind/`, and the CAPD-specific wiring in the spike tasks.
-  Git history and the ADRs preserve the knowledge; keeping the files until the replacement path is green keeps rollback trivial.
+  Git history and the ADRs preserve the knowledge.
 - **Live state to clean up:** the `capi-test` kind management cluster (with the stuck `talos-cilium-test` workload objects) still runs from the probe sessions.
   It is torn down as the first step of Phase 0 (its own teardown task already handles this); it has no further diagnostic value now that the finding is recorded.
 
 Nothing beyond the spike exists yet: there are no Flux manifests, no `clusters/` tree, no turnkey payload, and no `.devcontainer/`.
 
 ## Phase 0 - Get the spike to green on talosctl (unblocks everything)
+
+**Status: done, green (2026-07-06).** All steps below landed as written except where noted inline; see `PRD.md` Section 6 for the baseline timings and both ADRs for the two findings that surfaced during implementation.
 
 The PRD rests on "Cilium works inside locally provisioned Talos Docker containers."
 Until the three engineering gates pass, no pipeline should be built on top.
@@ -51,33 +53,36 @@ Upstream evidence says this combination works (siderolabs/talos discussion #9849
 2. **Rewrite the spike task chain around `talosctl`** (rename `test-capd-spike:*` to `test-talos-spike:*`; update any references):
    - `setup`: verify docker and `talosctl` availability (both mise-managed except docker); no management cluster to create anymore.
    - `provision`: idempotently create the target cluster:
-     `talosctl cluster create` with `--name` from `$CLUSTER_NAME`, 1 control plane + 2 workers (gate 2 must provably cross a node boundary, and Talos control planes are `NoSchedule`-tainted by default), `--kubernetes-version` pinned to 1.35.x, the CNI/proxy config patch via `--config-patch @<file>` (move the patch content from the CAPD template into a standalone `.config/talos/` patch file), and `--skip-k8s-node-readiness-check` (nodes cannot report Ready before a CNI exists; this is the documented workaround, not a hack).
+     `talosctl cluster create` with `--name` from `$CLUSTER_NAME`, 1 control plane + 2 workers (gate 2 must provably cross a node boundary, and Talos control planes are `NoSchedule`-tainted by default), `--kubernetes-version` pinned to 1.35.x, and the CNI/proxy config patch via `--config-patch @<file>` (move the patch content from the CAPD template into a standalone `.config/talos/` patch file).
+     **Correction (verified live, 2026-07-06):** no `--skip-k8s-node-readiness-check` flag exists in talosctl v1.13.5; `talosctl cluster create` auto-detects the CNI-disabled config patch and skips the node/kube-proxy/coredns readiness health-checks on its own, so no such flag is needed or passed.
      Scope config outputs to the repo-local `$KUBECONFIG_WORK`/`$TALOSCONFIG` paths and keep user-global configs clean - the exact mechanism needs verification at implementation time: `talosctl cluster create` merges a kubeconfig context into the default location by default, so the candidates are the `KUBECONFIG` env/`--talosconfig` scoping it respects, or a separate `talosctl kubeconfig <path> --merge=false` retrieval; if the merge proves unavoidable, provision removes the global context it created, and teardown verifies none remains either way.
      Detect an already-running cluster and make re-runs a no-op (idempotency bar).
      Wait on "Kubernetes API serving", not node readiness.
-   - `cilium`: install Cilium 1.19.5 via Helm per Sidero's Cilium guide for Talos: `kubeProxyReplacement=true`, `ipam.mode=kubernetes`, KubePrism as the API endpoint (`k8sServiceHost=localhost`, `k8sServicePort=7445` - KubePrism is on by default in Talos 1.13; the kubeconfig-derived host:port used by the CAPD-era task points at a host-published port that pods inside the nodes cannot reach), plus the guide's Talos-specific security-context and cgroup values (`cgroup.autoMount.enabled=false`, `cgroup.hostRoot=/sys/fs/cgroup`, and the guide's explicit capability list - Talos forbids workload kernel-module loading, which is why Cilium's default capability set does not carry over).
+   - `cilium`: install Cilium via Helm per Sidero's Cilium guide for Talos: `kubeProxyReplacement=true`, `ipam.mode=kubernetes`, KubePrism as the API endpoint (`k8sServiceHost=localhost`, `k8sServicePort=7445` - KubePrism is on by default in Talos 1.13; the kubeconfig-derived host:port used by the CAPD-era task points at a host-published port that pods inside the nodes cannot reach), plus the guide's Talos-specific security-context and cgroup values (`cgroup.autoMount.enabled=false`, `cgroup.hostRoot=/sys/fs/cgroup`, and the guide's explicit capability list - Talos forbids workload kernel-module loading, which is why Cilium's default capability set does not carry over).
      Apply the guide's values verbatim and verify them against the current guide at implementation time rather than trusting this paragraph.
+     **Version pin corrected (2026-07-06):** planned as 1.19.5, but the step 3 fallback trigger below fired on the first clean run; shipped as 1.18.11 - see the Cilium ADR.
    - `validate`: the three gates, unchanged in what they verify, with two implementation fixes over the CAPD-era task:
      the cross-node gate schedules its two test pods on different nodes (topology spread constraint or anti-affinity) and asserts their node names differ before curling, and the LoadBalancer check replaces the current `sleep 15` plus single-shot IP read (a fixed sleep, below the idempotency bar) with a retry-until-allocated loop.
    - `teardown`: `talosctl cluster destroy --name $CLUSTER_NAME`, then verify zero residue: no orphaned containers or networks for the cluster (the Docker provisioner creates a named network), no `$CLUSTER_NAME` context in user-global kubeconfig/talosconfig, no leftover `talosctl` cluster state directory, and remove `.kube-*.config`/`.talosconfig`.
-3. **Known-risk watchpoint for gate 1:** cilium/cilium#46010 reports Cilium 1.19.x + `kubeProxyReplacement` on Talos 1.13 killing host networking during BPF/veth init.
-   If gate 1 fails with those symptoms (node APIs unreachable after Cilium starts), switch to Cilium 1.18.x before any deeper debugging, and record the outcome in the PRD version-alignment section.
+3. **Known-risk watchpoint for gate 1 - triggered (2026-07-06):** cilium/cilium#46010 reports Cilium 1.19.x + `kubeProxyReplacement` on Talos 1.13 killing host networking during BPF/veth init.
+   The actual symptom differed from the pre-registered trigger (it surfaced one step later, as host-network DNS failure in gate 2's test workload, not as a gate 1 or node-readiness failure - `kubectl`/`cilium-dbg` health checks did not flag it), but the fallback held: Cilium 1.18.11 on freshly re-provisioned nodes cleared it across two full teardown/re-provision cycles.
+   Outcome recorded in the PRD version-alignment section and the Cilium ADR (`ADR-cilium-1-19-kubeproxyreplacement-talos-host-networking-2026-07-06.md`).
 4. **Gate 3 decision point (LB reachability strategy):** a `CiliumLoadBalancerIPPool` scoped to the cluster's Docker subnet is required, not a fallback - Cilium's LB-IPAM assigns `LoadBalancer` IPs only when a pool exists, and pod-side `ipam.mode` is unrelated to service IPs.
    The open question is only reachability: allocation alone is not reachability, so pair the pool with a Cilium L2 announcement policy or a host route toward the pool, whichever the probe shows the Docker bridge needs.
    Resolve empirically, record the answer.
 5. **Exit criteria:** all three gates green from a clean `setup` through `validate`, reproducibly, twice in a row from `teardown` (proves both the happy path and idempotent re-entry); stage timings (cluster create, Cilium ready, gates) measured and recorded as the baseline for the Phase 4 spin-up budget.
    (The PRD's < 10 minute target is defined against full payload readiness, which does not exist until Phases 2-3 - Phase 0 records a baseline, not a pass/fail against that target.)
-6. **After green:** delete the obsolete CAPD assets listed in Current state, and extract the ADRs (Cross-cutting below).
+6. **After green (done):** the obsolete CAPD assets listed in Current state are deleted, and both ADRs are extracted (Cross-cutting below).
 
-### Phase 0 assumptions and their cheap tests
+### Phase 0 assumptions and their cheap tests (resolved, 2026-07-06)
 
-| Assumption | Evidence today | Cheap test |
-| --- | --- | --- |
-| Cilium runs on Talos-in-Docker | Upstream discussion #9849 (single-sourced) | Gate 1 itself |
-| KubePrism endpoint works in the Docker provisioner | Talos 1.13 default; not probed here | Gate 1; fallback is the node-IP:6443 endpoint |
-| Cilium 1.19.5 is safe on Talos 1.13 | Contradicted by one closed upstream report | Gate 1 with the 1.18.x fallback trigger |
-| LB IP reachable from host | Unprobed; the IP pool is mandatory for allocation, only the announcement mechanism is open | Gate 3 (L2 announcement policy vs host route) |
-| Cilium 1.19 e2e matrix covers Kubernetes 1.35; 1.15 EOL ranges | Upstream docs, checked 2026-07-05, not re-verified since | Re-check the upstream matrix when pinning chart versions |
+| Assumption | Evidence today | Cheap test | Outcome |
+| --- | --- | --- | --- |
+| Cilium runs on Talos-in-Docker | Upstream discussion #9849 (single-sourced) | Gate 1 itself | Confirmed |
+| KubePrism endpoint works in the Docker provisioner | Talos 1.13 default; not probed here | Gate 1; fallback is the node-IP:6443 endpoint | Confirmed, no fallback needed |
+| Cilium 1.19.5 is safe on Talos 1.13 | Contradicted by one closed upstream report | Gate 1 with the 1.18.x fallback trigger | Falsified - fallback triggered, shipped 1.18.11 (Cilium ADR) |
+| LB IP reachable from host | Unprobed; the IP pool is mandatory for allocation, only the announcement mechanism is open | Gate 3 (L2 announcement policy vs host route) | Confirmed - L2 announcement policy sufficient, no host route needed |
+| Cilium 1.19 e2e matrix covers Kubernetes 1.35; 1.15 EOL ranges | Upstream docs, checked 2026-07-05, not re-verified since | Re-check the upstream matrix when pinning chart versions | Confirmed for 1.18 too (PRD Section 4) |
 
 ## Phase 1 - Resolve the devcontainer gap (decision, simplified by the re-frame)
 
@@ -148,9 +153,10 @@ Deliberately unscheduled; triggered by a real CAPA/cloud deployment getting plan
 
 ## Cross-cutting
 
-- **Extract ADRs after Phase 0 green** (do not wait for Phase 2): the CAPD/Talos bootstrap-exec incompatibility (and why no upstream CAPD+Talos template exists), the JSON6902-vs-strategicPatches multi-document finding, the `{{config_root}}` mise templating gotcha, and the idempotency bar.
+- **Extract ADRs after Phase 0 green (done, 2026-07-06):** the CAPD/Talos bootstrap-exec incompatibility (`ADR-capd-talos-bootstrap-incompatibility-2026-07-06.md`, which also covers the JSON6902-vs-strategicPatches multi-document finding) and the Cilium 1.19-on-Talos host-networking break (`ADR-cilium-1-19-kubeproxyreplacement-talos-host-networking-2026-07-06.md`).
+  The `{{config_root}}` mise templating gotcha and the idempotency bar are recorded inline (`.config/mise/config.toml`, `.config/mise/.env`, and this plan's "Current state" section) rather than as standalone ADRs - neither rises to a decision with rejected alternatives, so a dedicated ADR would be overhead.
 - The Phase 2 overlay boundary gets a doubt-driven-development review before it stands (noted in Phase 2).
-- Update `README`/onboarding text wherever it still describes the dual-cluster CAPI architecture or the YubiKey-backed v1 security posture (both stale - the README currently asserts both), in the same change that lands Phase 0 (single source of truth; PRD v1.3 is the reference).
+- **Update `README`/onboarding text (done, 2026-07-06):** the README no longer describes the dual-cluster CAPI architecture or asserts the YubiKey-backed v1 security posture; it reflects the single-cluster `talosctl` architecture and the software-AGE-key v1 posture (PRD v1.4 is the reference).
 
 ## Decisions
 
@@ -168,4 +174,5 @@ Deliberately unscheduled; triggered by a real CAPA/cloud deployment getting plan
 
 ## Immediate next action
 
-Phase 0 steps 1-2: tear down the legacy `capi-test` environment, rewrite the spike tasks around `talosctl cluster create` (carrying the CNI/proxy patch and the idempotency patterns over from the CAPD-era tasks), and drive gates 1-3 to green.
+Phase 0 is done (green, 2026-07-06 - see Phase 0 status above).
+Next: decide devcontainer vs host-native (Phase 1, Decisions item 1), then start Phase 2's `clusters/workload/` structure.
