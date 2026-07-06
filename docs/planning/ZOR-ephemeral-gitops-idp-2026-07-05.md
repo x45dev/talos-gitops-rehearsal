@@ -23,7 +23,7 @@ The approach of using a localized CAPI/k3d management cluster to bootstrap Talos
 - **Stated problem:** Need a fast, reproducible, zero-trust local development environment matching production.
 - **Core premise (the load-bearing if/then):** If we use CAPI (CAPD) via a local `k3d` cluster, then we can reuse the exact same GitOps provisioning logic for both local workstations and future cloud targets.
 - **Expensive / irreversible decisions:** Adopting a dual-control-plane local architecture (k3d management + Talos target) and maintaining two FluxCD reconciliation loops.
-- **Load-bearing assumptions tested:** 
+- **Load-bearing assumptions tested:**
   1. Pipeline parity is worth the compute overhead (Validated via author).
   2. Cilium eBPF functions identically inside nested CAPD Docker networks on Ubuntu (Fragility: High, Impact: Severe).
 
@@ -40,7 +40,7 @@ The approach of using a localized CAPI/k3d management cluster to bootstrap Talos
 
 ## 5a. Residual risks and pivot indicators
 
-- **Residual risks (2):** 
+- **Residual risks (2):**
   1. **Network Stack Collision:** eBPF/Cilium failing to mount or route properly inside the CAPD Docker-in-Docker boundaries.
   2. **State Management:** CAPI loses track of target resources if the bootstrap cluster is pruned, requiring out-of-band bash scripts to clean up orphaned CAPD nodes.
 - **Leading indicators / signposts:** If the `mise` teardown scripts begin failing consistently due to dangling Docker volumes or network interfaces left behind by CAPD, it may signal the need to keep the `k3d` cluster running continuously.

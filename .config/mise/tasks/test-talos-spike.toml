@@ -1,0 +1,264 @@
+["test-talos-spike:setup"]
+description = "1. Verify docker and talosctl are available"
+run = """
+#!/usr/bin/env bash
+set -e
+
+echo "=> Checking docker daemon..."
+docker info >/dev/null
+
+echo "=> Checking talosctl..."
+talosctl version --client >/dev/null
+
+echo "✅ Prerequisites present. No management cluster needed (talosctl provisions directly)."
+"""
+
+["test-talos-spike:provision"]
+description = "2. Idempotently create the target Talos cluster via talosctl"
+depends = ["test-talos-spike:setup"]
+run = """
+#!/usr/bin/env bash
+set -e
+export KUBECONFIG=$KUBECONFIG_WORK
+
+if [ -d "$HOME/.talos/clusters/$CLUSTER_NAME" ]; then
+    echo "=> Talos cluster '$CLUSTER_NAME' already exists, skipping creation."
+else
+    echo "=> Creating Talos cluster '$CLUSTER_NAME' (1 control plane + 2 workers)..."
+    # talosctl merges the workload kubeconfig into whatever $KUBECONFIG points at
+    # (set above), so no separate `talosctl kubeconfig` extraction step is needed -
+    # it also auto-detects the CNI-disabled config patch and SKIPs the node/kube-proxy/
+    # coredns readiness health-checks it would otherwise block on (verified live: no
+    # `--skip-k8s-node-readiness-check` flag exists in talosctl v1.13.5 at all).
+    talosctl cluster create docker \
+        --name "$CLUSTER_NAME" \
+        --workers 2 \
+        --kubernetes-version 1.35.5 \
+        --config-patch @.config/talos/cni-none.patch.yaml
+fi
+
+echo "=> Waiting for the Kubernetes API to serve (not node readiness - no CNI yet)..."
+attempt=1
+max_attempts=90
+until kubectl get --raw='/readyz' >/dev/null 2>&1; do
+    if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "❌ Kubernetes API did not become ready after ${max_attempts} attempts." >&2
+        exit 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 2
+done
+echo "✅ Kubernetes API is serving."
+"""
+
+["test-talos-spike:cilium"]
+description = "3. Install Cilium via Helm (Talos-specific values per Sidero's guide)"
+depends = ["test-talos-spike:provision"]
+run = """
+#!/usr/bin/env bash
+set -e
+export KUBECONFIG=$KUBECONFIG_WORK
+
+echo "=> Installing/Updating Cilium via Helm..."
+helm repo add cilium https://helm.cilium.io/
+helm repo update
+
+# KubePrism (on by default in Talos 1.13) exposes a stable, in-node API endpoint at
+# localhost:7445 - pods inside the nodes cannot reach the host-published kubeconfig
+# port the CAPD-era task used, but every node can always reach its own KubePrism.
+# cgroup/security-context values and the explicit capability list come from Sidero's
+# Cilium-on-Talos guide: Talos forbids workload kernel-module loading, so Cilium's
+# default capability set does not carry over.
+# Pinned to 1.18.11, not 1.19.x: verified live (2026-07-06) that Cilium 1.19.5 +
+# kubeProxyReplacement=true on Talos 1.13.5 breaks host-network DNS resolution
+# node-wide (containerd image pulls and even hostNetwork pods time out resolving
+# via the node's own 127.0.0.11 embedded resolver) - this is the exact symptom
+# cilium/cilium#46010 documents. 1.18.11 is the pinned fallback per Phase 0 step 3.
+helm upgrade --install cilium cilium/cilium --version 1.18.11 \
+  --namespace kube-system \
+  --set kubeProxyReplacement=true \
+  --set k8sServiceHost=localhost \
+  --set k8sServicePort=7445 \
+  --set ipam.mode=kubernetes \
+  --set cgroup.autoMount.enabled=false \
+  --set cgroup.hostRoot=/sys/fs/cgroup \
+  --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
+  --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
+  --set l2announcements.enabled=true \
+  --set externalIPs.enabled=true
+
+# The Cilium chart does not annotate the agent DaemonSet with a config-checksum, so a
+# `helm upgrade` that changes agent-level flags (like enable-l2-announcements) updates
+# the ConfigMap but leaves already-running agents on their old flags until restarted
+# (confirmed live via the agent's own config-drift-checker warning). Unconditionally
+# restarting costs one DaemonSet rollout (~15-20s) even on a no-op re-run, which is
+# cheap next to correctness: detecting drift reliably would mean parsing agent state
+# from inside each pod, which is worse than paying the fixed cost every time.
+echo "=> Restarting Cilium agents to pick up any config changes..."
+kubectl rollout restart daemonset/cilium -n kube-system
+kubectl rollout status daemonset/cilium -n kube-system --timeout=3m
+
+echo "=> Waiting for Cilium to report Ready..."
+kubectl wait --for=condition=Ready pod -l k8s-app=cilium -n kube-system --timeout=5m
+
+echo "=> Waiting for all nodes to report Ready (Cilium now provides the CNI)..."
+kubectl wait --for=condition=Ready node --all --timeout=5m
+
+# Gate 3 (LB reachability): ipam.mode is pod IPAM only - LoadBalancer service IPs come
+# from a separate subsystem (LB-IPAM) that allocates nothing without an explicit pool.
+# Scoped to a block inside the Docker bridge subnet (10.5.0.0/24) that talosctl's
+# sequential node allocation (.1 gateway, .2-.4 nodes) never reaches, so no collision
+# risk as the node/worker count grows modestly.
+# Allocation alone is not reachability: paired with a CiliumL2AnnouncementPolicy so
+# Cilium ARPs the LB IP on the docker bridge (eth0) - the host sits on that same L2
+# segment, so ARP resolution is enough, no separate host route needed (verified live).
+kubectl apply -f - <<EOF
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: docker-subnet-pool
+spec:
+  blocks:
+    - cidr: 10.5.0.240/28
+---
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: docker-subnet-l2-policy
+spec:
+  loadBalancerIPs: true
+  interfaces:
+    - ^eth0$
+  nodeSelector: {}
+EOF
+"""
+
+["test-talos-spike:validate"]
+description = "4. Run the three verification gates"
+depends = ["test-talos-spike:cilium"]
+run = """
+#!/usr/bin/env bash
+set -e
+export KUBECONFIG=$KUBECONFIG_WORK
+
+echo "=> Gate 1: cluster is healthy (nodes Ready, already verified by 'cilium' task)."
+kubectl get nodes -o wide
+
+echo "=> Gate 2: cross-node pod-to-pod connectivity..."
+kubectl apply -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-test
+  template:
+    metadata:
+      labels:
+        app: nginx-test
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: nginx-test
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: nginx
+        image: nginx:alpine
+EOF
+
+kubectl wait --for=condition=ready pod -l app=nginx-test --timeout=2m
+
+POD1=$(kubectl get pods -l app=nginx-test -o jsonpath='{.items[0].metadata.name}')
+POD2=$(kubectl get pods -l app=nginx-test -o jsonpath='{.items[1].metadata.name}')
+NODE1=$(kubectl get pod "$POD1" -o jsonpath='{.spec.nodeName}')
+NODE2=$(kubectl get pod "$POD2" -o jsonpath='{.spec.nodeName}')
+
+if [ "$NODE1" = "$NODE2" ]; then
+    echo "❌ Both test pods landed on the same node ($NODE1) - anti-affinity did not take effect, gate 2 would pass vacuously." >&2
+    exit 1
+fi
+echo "   Pods scheduled on distinct nodes: $NODE1, $NODE2"
+
+POD2_IP=$(kubectl get pod "$POD2" -o jsonpath='{.status.podIP}')
+kubectl exec "$POD1" -- curl -s --max-time 3 "http://$POD2_IP"
+echo "✅ Cross-node pod-to-pod communication successful."
+
+echo "=> Gate 3: LoadBalancer IP allocation and reachability..."
+kubectl expose deployment nginx-test --port=80 --type=LoadBalancer --dry-run=client -o yaml | kubectl apply -f -
+
+EXTERNAL_IP=""
+attempt=1
+max_attempts=30
+while [ -z "$EXTERNAL_IP" ]; do
+    EXTERNAL_IP=$(kubectl get svc nginx-test -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+    if [ -n "$EXTERNAL_IP" ]; then
+        break
+    fi
+    if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "❌ Cilium failed to allocate a LoadBalancer IP after ${max_attempts} attempts." >&2
+        exit 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 2
+done
+echo "   LoadBalancer IP allocated: $EXTERNAL_IP"
+
+echo "=> Verifying the LoadBalancer IP is reachable from the host..."
+attempt=1
+max_attempts=30
+until curl -s --max-time 2 "http://$EXTERNAL_IP" >/dev/null; do
+    if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "❌ LoadBalancer IP $EXTERNAL_IP allocated but not reachable from the host after ${max_attempts} attempts." >&2
+        exit 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 2
+done
+echo "✅ LoadBalancer IP $EXTERNAL_IP reachable from host."
+"""
+
+["test-talos-spike:teardown"]
+description = "Destroy the Talos cluster and verify zero residue"
+run = """
+#!/usr/bin/env bash
+set -e
+echo "=> Destroying Talos cluster '$CLUSTER_NAME'..."
+talosctl cluster destroy --name "$CLUSTER_NAME"
+
+echo "=> Verifying zero residue..."
+LEFTOVER_CONTAINERS=$(docker ps -a -q -f "label=talos.cluster.name=$CLUSTER_NAME" 2>/dev/null || true)
+if [ -n "$LEFTOVER_CONTAINERS" ]; then
+    echo "   Removing leftover containers..."
+    docker rm -f $LEFTOVER_CONTAINERS
+fi
+
+LEFTOVER_NETWORK=$(docker network ls -q -f "name=^${CLUSTER_NAME}$" 2>/dev/null || true)
+if [ -n "$LEFTOVER_NETWORK" ]; then
+    echo "   Removing leftover network..."
+    docker network rm "$LEFTOVER_NETWORK"
+fi
+
+if [ -d "$HOME/.talos/clusters/$CLUSTER_NAME" ]; then
+    echo "❌ Leftover talosctl cluster state directory: $HOME/.talos/clusters/$CLUSTER_NAME" >&2
+    exit 1
+fi
+
+if grep -q "$CLUSTER_NAME" "$HOME/.kube/config" 2>/dev/null; then
+    echo "❌ Leftover '$CLUSTER_NAME' context in the global kubeconfig ($HOME/.kube/config)." >&2
+    exit 1
+fi
+
+rm -f "$KUBECONFIG_WORK" "$TALOSCONFIG"
+echo "🧹 Environment wiped clean, zero residue confirmed."
+"""
+
+["test-talos-spike:all"]
+description = "Run the entire spike test"
+depends = ["test-talos-spike:validate"]
+run = "echo 'Spike test execution complete.'"

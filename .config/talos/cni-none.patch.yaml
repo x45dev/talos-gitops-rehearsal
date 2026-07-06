@@ -1,0 +1,11 @@
+# Strategic merge patch for `talosctl cluster create docker --config-patch @<this file>`.
+# Disables the stock CNI and kube-proxy so Cilium (kubeProxyReplacement=true) can own both.
+# Carried over from the CAPD-era template (.config/capi/capd-talos-template.yaml,
+# TalosControlPlane.spec.controlPlaneConfig.controlplane.strategicPatches) - only the
+# delivery mechanism changed, not the content.
+cluster:
+  network:
+    cni:
+      name: none
+  proxy:
+    disabled: true
