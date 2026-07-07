@@ -52,7 +52,7 @@ The 2026-07-06 zoom-out established that the parity worth buying locally is the 
   Whether helm-controller takes over a CLI-installed release cleanly is Flux-version-dependent; it is verified live in plan Phase 2, not assumed.
   After adoption, day-2 Cilium changes flow through Git.
 * **GitOps Reconciliation:** FluxCD's controllers are installed into the target cluster (creating the `flux-system` namespace).
-* **Identity Injection:** the AGE-backed SOPS key is decrypted and applied as the `sops-age` secret into `flux-system` - after the Flux install creates the namespace, and before the root `Kustomization` is applied, so decryption never races the first reconcile.
+* **Identity Injection:** the AGE-backed SOPS key is decrypted and applied as the `sops-age` secret into `flux-system`, and the persistent read-only deploy key (Section 6) is applied as the `git-credentials` secret - both after the Flux install creates the namespace, and before the root `Kustomization` is applied, so decryption and Git authentication never race the first reconcile.
 * **Self-Configuration:** the `GitRepository` and root `Kustomization` are applied, and Flux reconciles the "turnkey" payload from `clusters/workload/`:
   * **Networking:** Cilium (eBPF-native CNI/L4-LB, no kube-proxy; adopted from the bootstrap install).
   * **Traffic:** Cloudflare Tunnel for secure ingress.
