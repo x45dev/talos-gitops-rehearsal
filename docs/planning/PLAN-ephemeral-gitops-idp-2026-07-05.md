@@ -2,8 +2,8 @@
 id: PLAN-ephemeral-gitops-idp
 title: Implementation plan - Ephemeral GitOps IDP (Local Edition)
 status: draft
-version: 0.5.0
-date: 2026-07-06
+version: 0.6.0
+date: 2026-07-07
 ---
 
 # Implementation plan - Ephemeral GitOps IDP
@@ -95,25 +95,30 @@ Upstream evidence says this combination works (siderolabs/talos discussion #9849
 
 ## Phase 2 - GitOps repository structure (single loop)
 
+**Status: done, green (2026-07-07).** All steps below landed; see the Decisions section for the two decisions this phase blocked on, and "Live verification evidence" below for what was actually proven, not just built.
+
 Convert the imperative spike into the PRD's declarative in-cluster loop, and build the Kustomize layout that carries the parity contract.
 
-1. Create `clusters/workload/` as the Flux-reconciled tree: the turnkey payload plus the Flux `Kustomization`/`GitRepository` objects themselves.
+1. **Done.** `clusters/workload/` is the Flux-reconciled tree: `flux-system/` (version-pinned Flux controller export plus the `GitRepository`/root `Kustomization`) and `infrastructure/cilium/` (`HelmRepository`/`HelmRelease`).
    No `clusters/management/` tree exists in v1; add it only at Milestone M-CAPI.
-2. **Honor the CAPI-consumability contract (PRD Section 5):** the overlay must not reference `talosctl`-specific node names, labels, or local paths.
-   Write the contract down as a short doc next to the overlay (`clusters/workload/README.md` or similar) listing what a CAPI-provisioned cluster will and will not provide.
-3. Wire the bootstrap task: install Flux into the target cluster, inject the `sops-age` secret into `flux-system` (the namespace exists only after the Flux install; the secret must land before the root `Kustomization` so decryption never races), apply the `GitRepository` + root `Kustomization`.
-   Add `flux` to the mise `[tools]` set with a pinned version first - it is not yet declared there, and the Cilium-adoption behavior in step 5 is Flux-version-dependent.
-4. **Decision (blocks step 3's final shape): Flux source and local iteration.**
-   Default assumption: Flux tracks this repository's GitHub remote (auth via deploy key if the repo is private - resolve repo visibility here).
-   Named open question: how a developer tests uncommitted manifest changes against an ephemeral cluster - candidate answers are a scratch branch Flux tracks, `flux push artifact` to a local OCI registry, or offline `flux build kustomization` diffing.
-   Pick one deliberately; do not let the answer emerge by accident.
-5. **Bootstrap ordering (hard constraint, not a footnote):** Flux's controllers are ordinary pod-network `Deployment`s and cannot start on a CNI-less cluster, so Flux can never deliver the initial CNI.
-   Cilium's first install therefore stays imperative in the bootstrap task (Phase 0's `cilium` step survives into the pipeline), and Flux adopts it: the payload's `HelmRelease` uses the same release name and namespace, so helm-controller upgrades the existing release in place instead of fighting it.
-   Hard precondition: the `HelmRelease` pins the same chart version and values as the bootstrap install - keep one values file that both the bootstrap task and the `HelmRelease` reference - so the adoption reconcile is a no-op upgrade; a divergent first upgrade would restart the CNI underneath the controller performing it.
-   Verify the adoption live (helm-controller taking over the CLI-installed release without a destructive re-install) as part of this phase's exit criteria; after adoption, day-2 Cilium changes flow through Git, never the bootstrap task.
-6. **Exit criteria:** the same green gates as Phase 0, with the Cilium `HelmRelease` (and all subsequent in-cluster changes) delivered by Flux reconciliation from Git, and the Cilium adoption handover verified live.
+2. **Done.** The CAPI-consumability contract (PRD Section 5) is written down in `clusters/workload/README.md` as a checkable list of what may not leak into the tree (`talosctl`-specific node names/labels, host paths, the local Docker LB/L2 topology), plus a "Known limitations" section for two gaps accepted rather than solved this phase (see below).
+3. **Done.** `test-talos-spike:flux-bootstrap` installs Flux, injects `sops-age` and `git-credentials` secrets into `flux-system`, then applies the `GitRepository` + root `Kustomization`.
+   `flux2 = "2.9.0"` is pinned in the mise `[tools]` set.
+4. **Decision closed** - see Decisions section: host repo confirmed private; deploy key is persistent, not per-cycle; local iteration is a scratch branch Flux's `GitRepository` tracks.
+5. **Done, with one correction found live.** Cilium's first install stays imperative (`test-talos-spike:cilium`); the `HelmRelease` adopts it in place (same release name/namespace/version/values).
+   The single-values-file precondition was *violated* by the first implementation pass (the imperative task duplicated every value as independent `--set` flags instead of reading `clusters/workload/infrastructure/cilium/values.yaml`) - caught by the doubt-driven-development review, not by live verification, since both copies still matched at review time by coincidence of careful duplication.
+   Fixed: the imperative task now reads the same file via `helm upgrade -f`.
+   A second, unrelated bug surfaced only during live verification: re-running the imperative task after Flux adoption failed with a server-side-apply field conflict against helm-controller's field manager (both trying to own the same DaemonSet/Deployment fields) - fixed with an adoption-aware guard that skips the imperative install once a `HelmRelease` already exists.
+6. **Done, live-verified.** See "Live verification evidence" below.
 
 Subject the Phase 2 module boundary (overlay layout + consumability contract) to a doubt-driven-development review before it stands - it is the load-bearing structural decision for parity.
+**Done (2026-07-07).** One doubt cycle (fresh-context adversarial review via an Explore subagent) surfaced 7 findings; all were reconciled: 5 were valid and fixed (single-values-file violation above; `verify-adoption` strengthened to diff deployed values against the canonical file rather than only checking for a non-destructive history; added an `infrastructure/kustomization.yaml` aggregator so future components don't require editing the root; tightened the local-iteration README section to one unambiguous repoint mechanism), 2 were valid trade-offs documented rather than fixed (no day-2 config-drift-restart mechanism once Flux owns Cilium; `flux-system`'s inherited unrestricted-egress `NetworkPolicies` - both now in the README's "Known limitations" section, the second deferred alongside the existing YubiKey hardening milestone). No talosctl-specific leakage or CAPI-consumability violation was found.
+
+### Live verification evidence
+
+Ran the full chain (`mise run test-talos-spike:all`) end-to-end from a clean `teardown` three times: once pre-doubt-review (surfaced the SSA-conflict bug above), once post-fix as the idempotent-re-entry pass (also caught a transient `quay.io` registry blip during image pull - self-healed via Kubernetes' own retry, not a code defect), and once more after the doubt-driven-development fixes to confirm `verify-adoption`'s new values-diff check actually passes with the corrected single-source-of-truth wiring (2 clean helm revisions: install + adopt-upgrade, deployed values byte-identical to the canonical file).
+All three gates green on every completed pass; `GitRepository`/`Kustomization` both reported `Ready`; `helm history cilium -n kube-system` never showed an `uninstalled` revision.
+(Verification used the documented scratch-branch local-iteration mechanism against this repo's own feature branch, since the changes weren't yet on `main` at verification time - the same mechanism the README documents for day-2 development.)
 
 ## Phase 3 - Turnkey payload
 
@@ -153,7 +158,7 @@ Deliberately unscheduled; triggered by a real CAPA/cloud deployment getting plan
 
 - **Extract ADRs after Phase 0 green (done, 2026-07-06):** the CAPD/Talos bootstrap-exec incompatibility (`ADR-capd-talos-bootstrap-incompatibility-2026-07-06.md`, which also covers the JSON6902-vs-strategicPatches multi-document finding) and the Cilium 1.19-on-Talos host-networking break (`ADR-cilium-1-19-kubeproxyreplacement-talos-host-networking-2026-07-06.md`).
   The `{{config_root}}` mise templating gotcha and the idempotency bar are recorded inline (`.config/mise/config.toml`, `.config/mise/.env`, and this plan's "Current state" section) rather than as standalone ADRs - neither rises to a decision with rejected alternatives, so a dedicated ADR would be overhead.
-- The Phase 2 overlay boundary gets a doubt-driven-development review before it stands (noted in Phase 2).
+- **Phase 2 overlay boundary doubt-driven-development review (done, 2026-07-07):** see Phase 2 status above for the findings and fixes.
 - **Update `README`/onboarding text (done, 2026-07-06):** the README no longer describes the dual-cluster CAPI architecture or asserts the YubiKey-backed v1 security posture; it reflects the single-cluster `talosctl` architecture and the software-AGE-key v1 posture (PRD v1.4 is the reference).
 
 ## Decisions
@@ -164,14 +169,17 @@ Deliberately unscheduled; triggered by a real CAPA/cloud deployment getting plan
    Decided via zoom-out (`ZOR-ephemeral-gitops-idp-2026-07-06.md`): CAPI-locally was a means to workflow parity, container fidelity suffices for v1, Docker-only is a hard host-dependency line (which independently eliminated the Incus option, whose Talos template is CI-untested and VM-based).
 2. **Devcontainer vs host-native for v1 (2026-07-06):** host-native `mise`.
    The toolchain is fully mise-managed and the only Docker requirement is `talosctl`'s provisioner reaching a single daemon socket, so the devcontainer's isolation/reproducibility upside no longer offsets its setup cost; see Phase 1 status above.
+3. **Gate 3 LB reachability mechanism (2026-07-06, resolved empirically during Phase 0, not previously reconciled here):** `CiliumL2AnnouncementPolicy`, no separate host route.
+   The host shares the same L2 segment as the Docker bridge, so ARP announcement alone is sufficient; see `PRD.md` Section 6 and the Cilium ADR.
+4. **Flux source and local iteration loop (2026-07-07):** this repository's GitHub remote (confirmed private via `gh repo view`), authenticated with a persistent, one-time read-only SSH deploy key (generated via `gh repo deploy-key add`, private half stored encrypted in the existing project SOPS secrets file) rather than one minted/revoked per cluster cycle.
+   Local iteration on uncommitted changes: a scratch branch the `GitRepository` tracks (`kubectl patch gitrepository/flux-system ... -p '{"spec":{"ref":{"branch":"<scratch-branch>"}}}'`), chosen over an OCI-artifact push or offline `flux build` diffing because it keeps the source *kind* identical between local and cloud.
+   Full rationale and the mechanism's accepted gaps: `clusters/workload/README.md`.
 
 **Open:**
 
-1. **Flux source and local iteration loop** (Phase 2, step 4) - repo visibility/auth plus the uncommitted-changes workflow.
-2. **Gate 3 LB reachability mechanism** (Cilium L2 announcement policy vs a host route toward the pool; the `CiliumLoadBalancerIPPool` itself is mandatory for LB-IPAM, not part of the decision) - resolve empirically at Phase 0 gate 3.
-3. **State persistence** (PRD Section 6) - only if re-hydrating data across ephemeral cycles becomes a real need; no v1 work.
+1. **State persistence** (PRD Section 6) - only if re-hydrating data across ephemeral cycles becomes a real need; no v1 work.
 
 ## Immediate next action
 
-Phase 0 and Phase 1 are done (green, 2026-07-06 - see status above).
-Next: start Phase 2's `clusters/workload/` structure.
+Phase 0, Phase 1, and Phase 2 are done (green, 2026-07-07 - see status above).
+Next: Phase 3, the turnkey payload.
