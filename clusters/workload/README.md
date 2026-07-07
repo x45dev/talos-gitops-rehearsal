@@ -61,8 +61,39 @@ kubectl patch gitrepository/flux-system -n flux-system --type=merge \
   -p '{"spec":{"ref":{"branch":"<scratch-branch>"}}}'
 ```
 
-Repoint back to `main` (re-apply `gotk-sync.yaml`, or patch again) once done. A scratch
-branch was chosen over an OCI-artifact push or offline `flux build` diffing because it
-keeps the source *kind* (`GitRepository`) identical between local and cloud - the
-local-iteration mechanism itself never leaks into what a CAPI-provisioned cluster's
-Flux instance would need to consume.
+Repoint back to `main` the same way once done:
+
+```sh
+kubectl patch gitrepository/flux-system -n flux-system --type=merge \
+  -p '{"spec":{"ref":{"branch":"main"}}}'
+```
+
+Delete the scratch branch from the remote once you're done with it - it lives on the
+same shared GitHub remote a real deployment's `GitRepository` would also point at, so
+an abandoned scratch branch is a stale-but-harmless artifact on that remote, not just
+local state. A scratch branch was chosen over an OCI-artifact push or offline
+`flux build` diffing because it keeps the source *kind* (`GitRepository`) identical
+between local and cloud - the local-iteration mechanism itself never leaks into what a
+CAPI-provisioned cluster's Flux instance would need to consume. Nothing currently
+detects or alerts if a local cluster is left pointed at a stale scratch branch; that's
+an accepted gap for a single-developer local dev tool, not a hardened multi-user
+workflow.
+
+## Known limitations (accepted for v1, not solved by this tree)
+
+- **No day-2 config-drift restart for agent-level Cilium flags.** The imperative
+  bootstrap task (`test-talos-spike:cilium`) unconditionally restarts the Cilium
+  DaemonSet after every install/upgrade because the Cilium chart does not
+  checksum-annotate the agent pod template - a `helm upgrade` that changes an
+  agent-level flag (e.g. `l2announcements.enabled`) updates the ConfigMap but leaves
+  already-running agents on stale flags until restarted. Once Flux owns day-2 changes,
+  no equivalent mechanism exists here: a legitimate Git-driven values change to such a
+  flag will update the release without restarting the agents. Workaround until this is
+  designed properly: `kubectl rollout restart daemonset/cilium -n kube-system` manually
+  after any Git-driven change to an agent-level flag.
+- **`flux-system`'s NetworkPolicies allow unrestricted egress** (inherited unmodified
+  from `flux install --export`'s stock output, not introduced by this tree). The
+  `git-credentials` (repo deploy key) and `sops-age` (project decryption key) secrets
+  both live in this namespace with no egress scoping around the controllers that mount
+  them. Accepted for v1 alongside this project's other deferred hardening item (the
+  YubiKey-backed AGE key, PRD Section 3.2) rather than solved here.

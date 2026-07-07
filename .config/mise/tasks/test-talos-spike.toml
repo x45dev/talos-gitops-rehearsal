@@ -84,20 +84,17 @@ else
     # node-wide (containerd image pulls and even hostNetwork pods time out resolving
     # via the node's own 127.0.0.11 embedded resolver) - this is the exact symptom
     # cilium/cilium#46010 documents. 1.18.11 is the pinned fallback per Phase 0 step 3.
-    # NB: keep in sync with clusters/workload/infrastructure/cilium/values.yaml and
-    # helmrelease.yaml - same values/version, so Flux's later adoption is a no-op.
+    # -f reads clusters/workload/infrastructure/cilium/values.yaml directly - the same
+    # file the Flux HelmRelease consumes (via a generated ConfigMap) - so this task and
+    # the post-adoption HelmRelease can never drift apart into a value-changing "no-op"
+    # upgrade at adoption time (doubt-driven-development review, 2026-07-07: an earlier
+    # version of this task duplicated every value as --set flags instead of reading this
+    # file, silently defeating the single-source-of-truth precondition in plan Phase 2
+    # step 5). Chart *version* still lives here and in helmrelease.yaml separately - see
+    # values.yaml's header comment for why that duplication is unavoidable.
     helm upgrade --install cilium cilium/cilium --version 1.18.11 \
       --namespace kube-system \
-      --set kubeProxyReplacement=true \
-      --set k8sServiceHost=localhost \
-      --set k8sServicePort=7445 \
-      --set ipam.mode=kubernetes \
-      --set cgroup.autoMount.enabled=false \
-      --set cgroup.hostRoot=/sys/fs/cgroup \
-      --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
-      --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
-      --set l2announcements.enabled=true \
-      --set externalIPs.enabled=true
+      -f clusters/workload/infrastructure/cilium/values.yaml
 
     # The Cilium chart does not annotate the agent DaemonSet with a config-checksum, so a
     # `helm upgrade` that changes agent-level flags (like enable-l2-announcements) updates
@@ -202,6 +199,22 @@ if echo "$HISTORY_JSON" | jq -r '.[].status' | grep -q "^uninstalled$"; then
     echo "❌ Release history shows an 'uninstalled' revision - Flux performed a destructive reinstall instead of an in-place upgrade." >&2
     exit 1
 fi
+
+# A non-destructive upgrade can still be a *value-changing* one, which is exactly what
+# the single-values-file precondition (plan Phase 2 step 5) exists to prevent - a
+# values diff at adoption time would restart the CNI underneath helm-controller. History
+# not showing "uninstalled" proves non-destructive; it does not prove the values matched.
+# Compare what's actually deployed against the canonical file directly instead of trusting
+# the two stayed in sync (doubt-driven-development review, 2026-07-07).
+echo "=> Verifying deployed Cilium values match the canonical values.yaml exactly..."
+DEPLOYED_VALUES=$(helm get values cilium -n kube-system -o json | jq -S .)
+CANONICAL_VALUES=$(yq -o=json eval clusters/workload/infrastructure/cilium/values.yaml | jq -S .)
+if [ "$DEPLOYED_VALUES" != "$CANONICAL_VALUES" ]; then
+    echo "❌ Deployed Cilium values differ from clusters/workload/infrastructure/cilium/values.yaml - adoption was non-destructive but changed values, which would have restarted the CNI." >&2
+    diff <(echo "$DEPLOYED_VALUES") <(echo "$CANONICAL_VALUES") >&2 || true
+    exit 1
+fi
+echo "✅ Deployed values match the canonical file exactly."
 
 echo "=> Confirming Cilium agents and nodes are still healthy after adoption..."
 kubectl wait --for=condition=Ready pod -l k8s-app=cilium -n kube-system --timeout=3m
