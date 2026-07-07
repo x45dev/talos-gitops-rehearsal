@@ -1,0 +1,40 @@
+# The GitRepository source and root Kustomization Flux reconciles from.
+# Applied by `test-talos-spike:flux-bootstrap` (not `flux bootstrap github` - that
+# command commits these manifests into the remote itself, which this project's
+# bootstrap task deliberately avoids; they are checked in here instead).
+#
+# Local iteration: `spec.ref.branch` below tracks `main` by default. To test
+# uncommitted manifest changes against an ephemeral cluster, push them to a scratch
+# branch and repoint this field at it:
+#   kubectl patch gitrepository/flux-system -n flux-system --type=merge \
+#     -p '{"spec":{"ref":{"branch":"<scratch-branch>"}}}'
+# Repoint back to `main` (and re-apply this file, or patch again) when done.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 1m
+  ref:
+    branch: main
+  secretRef:
+    name: git-credentials
+  url: ssh://git@github.com/x45dev/kind-talos-gitops.git
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./clusters/workload
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

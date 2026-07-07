@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kube-system
+resources:
+  - helmrepository.yaml
+  - helmrelease.yaml
+configMapGenerator:
+  - name: cilium-values
+    files:
+      - values.yaml
+generatorOptions:
+  # Static name (no content-hash suffix): the HelmRelease's valuesFrom reference below
+  # is a plain name Kustomize does not know how to rewrite (Flux's HelmRelease is a
+  # CRD, not a built-in type Kustomize's nameReference transformer understands). Flux
+  # already watches the referenced ConfigMap and re-reconciles on change, so a stable
+  # name loses nothing.
+  disableNameSuffixHash: true

@@ -13,3 +13,9 @@
 
 # Host-specific devcontainer env (seeded from .env.example by initialize.sh; never committed)
 .devcontainer/.env
+
+# Runtime kubeconfig/talosconfig for the ephemeral local cluster (KUBECONFIG_WORK/
+# TALOSCONFIG in .config/mise/config.toml [env]) - created by test-talos-spike:provision,
+# removed by test-talos-spike:teardown; never committed.
+.kube-workload.config
+.talosconfig

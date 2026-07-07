@@ -59,44 +59,54 @@ run = """
 set -e
 export KUBECONFIG=$KUBECONFIG_WORK
 
-echo "=> Installing/Updating Cilium via Helm..."
-helm repo add cilium https://helm.cilium.io/
-helm repo update
+# Once test-talos-spike:flux-bootstrap has run, helm-controller (Flux) owns this
+# release's underlying objects via server-side-apply field ownership. Re-running the
+# imperative `helm upgrade --install` below against an adopted release then contests
+# those same fields with a different field manager and fails outright (confirmed live,
+# 2026-07-06: "Apply failed with 1 conflict: conflict with helm-controller"). Detect
+# adoption and skip straight to the health checks - day-2 Cilium changes flow through
+# Git from here on (plan Phase 2 step 5), never this task.
+if kubectl get helmrelease cilium -n kube-system >/dev/null 2>&1; then
+    echo "=> Cilium HelmRelease already exists in kube-system - Flux has adopted this release. Skipping imperative helm upgrade."
+else
+    echo "=> Installing/Updating Cilium via Helm..."
+    helm repo add cilium https://helm.cilium.io/
+    helm repo update
 
-# KubePrism (on by default in Talos 1.13) exposes a stable, in-node API endpoint at
-# localhost:7445 - pods inside the nodes cannot reach the host-published kubeconfig
-# port the CAPD-era task used, but every node can always reach its own KubePrism.
-# cgroup/security-context values and the explicit capability list come from Sidero's
-# Cilium-on-Talos guide: Talos forbids workload kernel-module loading, so Cilium's
-# default capability set does not carry over.
-# Pinned to 1.18.11, not 1.19.x: verified live (2026-07-06) that Cilium 1.19.5 +
-# kubeProxyReplacement=true on Talos 1.13.5 breaks host-network DNS resolution
-# node-wide (containerd image pulls and even hostNetwork pods time out resolving
-# via the node's own 127.0.0.11 embedded resolver) - this is the exact symptom
-# cilium/cilium#46010 documents. 1.18.11 is the pinned fallback per Phase 0 step 3.
-helm upgrade --install cilium cilium/cilium --version 1.18.11 \
-  --namespace kube-system \
-  --set kubeProxyReplacement=true \
-  --set k8sServiceHost=localhost \
-  --set k8sServicePort=7445 \
-  --set ipam.mode=kubernetes \
-  --set cgroup.autoMount.enabled=false \
-  --set cgroup.hostRoot=/sys/fs/cgroup \
-  --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
-  --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
-  --set l2announcements.enabled=true \
-  --set externalIPs.enabled=true
+    # KubePrism (on by default in Talos 1.13) exposes a stable, in-node API endpoint at
+    # localhost:7445 - pods inside the nodes cannot reach the host-published kubeconfig
+    # port the CAPD-era task used, but every node can always reach its own KubePrism.
+    # cgroup/security-context values and the explicit capability list come from Sidero's
+    # Cilium-on-Talos guide: Talos forbids workload kernel-module loading, so Cilium's
+    # default capability set does not carry over.
+    # Pinned to 1.18.11, not 1.19.x: verified live (2026-07-06) that Cilium 1.19.5 +
+    # kubeProxyReplacement=true on Talos 1.13.5 breaks host-network DNS resolution
+    # node-wide (containerd image pulls and even hostNetwork pods time out resolving
+    # via the node's own 127.0.0.11 embedded resolver) - this is the exact symptom
+    # cilium/cilium#46010 documents. 1.18.11 is the pinned fallback per Phase 0 step 3.
+    # -f reads clusters/workload/infrastructure/cilium/values.yaml directly - the same
+    # file the Flux HelmRelease consumes (via a generated ConfigMap) - so this task and
+    # the post-adoption HelmRelease can never drift apart into a value-changing "no-op"
+    # upgrade at adoption time (doubt-driven-development review, 2026-07-07: an earlier
+    # version of this task duplicated every value as --set flags instead of reading this
+    # file, silently defeating the single-source-of-truth precondition in plan Phase 2
+    # step 5). Chart *version* still lives here and in helmrelease.yaml separately - see
+    # values.yaml's header comment for why that duplication is unavoidable.
+    helm upgrade --install cilium cilium/cilium --version 1.18.11 \
+      --namespace kube-system \
+      -f clusters/workload/infrastructure/cilium/values.yaml
 
-# The Cilium chart does not annotate the agent DaemonSet with a config-checksum, so a
-# `helm upgrade` that changes agent-level flags (like enable-l2-announcements) updates
-# the ConfigMap but leaves already-running agents on their old flags until restarted
-# (confirmed live via the agent's own config-drift-checker warning). Unconditionally
-# restarting costs one DaemonSet rollout (~15-20s) even on a no-op re-run, which is
-# cheap next to correctness: detecting drift reliably would mean parsing agent state
-# from inside each pod, which is worse than paying the fixed cost every time.
-echo "=> Restarting Cilium agents to pick up any config changes..."
-kubectl rollout restart daemonset/cilium -n kube-system
-kubectl rollout status daemonset/cilium -n kube-system --timeout=3m
+    # The Cilium chart does not annotate the agent DaemonSet with a config-checksum, so a
+    # `helm upgrade` that changes agent-level flags (like enable-l2-announcements) updates
+    # the ConfigMap but leaves already-running agents on their old flags until restarted
+    # (confirmed live via the agent's own config-drift-checker warning). Unconditionally
+    # restarting costs one DaemonSet rollout (~15-20s) even on a no-op re-run, which is
+    # cheap next to correctness: detecting drift reliably would mean parsing agent state
+    # from inside each pod, which is worse than paying the fixed cost every time.
+    echo "=> Restarting Cilium agents to pick up any config changes..."
+    kubectl rollout restart daemonset/cilium -n kube-system
+    kubectl rollout status daemonset/cilium -n kube-system --timeout=3m
+fi
 
 echo "=> Waiting for Cilium to report Ready..."
 kubectl wait --for=condition=Ready pod -l k8s-app=cilium -n kube-system --timeout=5m
@@ -133,9 +143,94 @@ spec:
 EOF
 """
 
-["test-talos-spike:validate"]
-description = "4. Run the three verification gates"
+["test-talos-spike:flux-bootstrap"]
+description = "4. Install Flux, inject secrets, and hand Cilium day-2 management to Git"
 depends = ["test-talos-spike:cilium"]
+run = """
+#!/usr/bin/env bash
+set -e
+set -o pipefail
+export KUBECONFIG=$KUBECONFIG_WORK
+
+echo "=> Installing Flux controllers (from the checked-in, version-pinned export)..."
+kubectl apply -f clusters/workload/flux-system/gotk-components.yaml
+kubectl wait --for=condition=available --timeout=3m -n flux-system deployment --all
+
+echo "=> Injecting sops-age secret (reuses the existing project AGE key, no new key material)..."
+kubectl create secret generic sops-age -n flux-system \
+  --from-file=age.agekey=.config/sops/age/keys.txt \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+echo "=> Injecting git-credentials secret (deploy key, decrypted in-memory via mise/SOPS - never written to disk)..."
+# known_hosts comes from GitHub's published Meta API, not a live ssh-keyscan TOFU probe
+# (https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+GITHUB_KNOWN_HOSTS=$(curl -sf https://api.github.com/meta | jq -r '.ssh_keys[]' | sed 's/^/github.com /')
+if [ -z "$GITHUB_KNOWN_HOSTS" ]; then
+    echo "❌ Failed to fetch GitHub's published SSH host keys from the Meta API - aborting rather than injecting an empty known_hosts." >&2
+    exit 1
+fi
+kubectl create secret generic git-credentials -n flux-system \
+  --from-literal=identity="$FLUX_GIT_DEPLOY_KEY" \
+  --from-literal=known_hosts="$GITHUB_KNOWN_HOSTS" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+echo "=> Applying GitRepository + root Kustomization..."
+kubectl apply -f clusters/workload/flux-system/gotk-sync.yaml
+
+echo "=> Waiting for the root Kustomization to reconcile..."
+kubectl wait --for=condition=ready kustomization/flux-system -n flux-system --timeout=5m
+echo "✅ Flux is reconciling clusters/workload from Git."
+"""
+
+["test-talos-spike:verify-adoption"]
+description = "5. Verify Flux adopted the running Cilium release in place (no destructive reinstall)"
+depends = ["test-talos-spike:flux-bootstrap"]
+run = """
+#!/usr/bin/env bash
+set -e
+export KUBECONFIG=$KUBECONFIG_WORK
+
+echo "=> Waiting for the Cilium HelmRelease to report Ready..."
+kubectl wait --for=condition=ready helmrelease/cilium -n kube-system --timeout=5m
+
+echo "=> Checking helm release history for a destructive reinstall..."
+HISTORY_JSON=$(helm history cilium -n kube-system -o json)
+REVISIONS=$(echo "$HISTORY_JSON" | jq 'length')
+if [ "$REVISIONS" -lt 1 ]; then
+    echo "❌ No helm release history found for 'cilium' in kube-system - adoption did not happen as expected." >&2
+    exit 1
+fi
+if echo "$HISTORY_JSON" | jq -r '.[].status' | grep -q "^uninstalled$"; then
+    echo "❌ Release history shows an 'uninstalled' revision - Flux performed a destructive reinstall instead of an in-place upgrade." >&2
+    exit 1
+fi
+
+# A non-destructive upgrade can still be a *value-changing* one, which is exactly what
+# the single-values-file precondition (plan Phase 2 step 5) exists to prevent - a
+# values diff at adoption time would restart the CNI underneath helm-controller. History
+# not showing "uninstalled" proves non-destructive; it does not prove the values matched.
+# Compare what's actually deployed against the canonical file directly instead of trusting
+# the two stayed in sync (doubt-driven-development review, 2026-07-07).
+echo "=> Verifying deployed Cilium values match the canonical values.yaml exactly..."
+DEPLOYED_VALUES=$(helm get values cilium -n kube-system -o json | jq -S .)
+CANONICAL_VALUES=$(yq -o=json eval clusters/workload/infrastructure/cilium/values.yaml | jq -S .)
+if [ "$DEPLOYED_VALUES" != "$CANONICAL_VALUES" ]; then
+    echo "❌ Deployed Cilium values differ from clusters/workload/infrastructure/cilium/values.yaml - adoption was non-destructive but changed values, which would have restarted the CNI." >&2
+    diff <(echo "$DEPLOYED_VALUES") <(echo "$CANONICAL_VALUES") >&2 || true
+    exit 1
+fi
+echo "✅ Deployed values match the canonical file exactly."
+
+echo "=> Confirming Cilium agents and nodes are still healthy after adoption..."
+kubectl wait --for=condition=Ready pod -l k8s-app=cilium -n kube-system --timeout=3m
+kubectl wait --for=condition=Ready node --all --timeout=3m
+
+echo "✅ Cilium HelmRelease adopted the existing release in place ($REVISIONS revision(s) recorded, none uninstalled)."
+"""
+
+["test-talos-spike:validate"]
+description = "6. Run the three verification gates"
+depends = ["test-talos-spike:flux-bootstrap"]
 run = """
 #!/usr/bin/env bash
 set -e
@@ -260,5 +355,5 @@ echo "🧹 Environment wiped clean, zero residue confirmed."
 
 ["test-talos-spike:all"]
 description = "Run the entire spike test"
-depends = ["test-talos-spike:validate"]
+depends = ["test-talos-spike:validate", "test-talos-spike:verify-adoption"]
 run = "echo 'Spike test execution complete.'"

@@ -2,8 +2,8 @@
 id: PRD-ephemeral-gitops-idp
 title: Ephemeral GitOps IDP (Local Edition)
 status: draft
-version: 1.4.0
-date: 2026-07-06
+version: 1.5.0
+date: 2026-07-07
 ---
 
 # Product Requirements Document (PRD)
@@ -52,7 +52,7 @@ The 2026-07-06 zoom-out established that the parity worth buying locally is the 
   Whether helm-controller takes over a CLI-installed release cleanly is Flux-version-dependent; it is verified live in plan Phase 2, not assumed.
   After adoption, day-2 Cilium changes flow through Git.
 * **GitOps Reconciliation:** FluxCD's controllers are installed into the target cluster (creating the `flux-system` namespace).
-* **Identity Injection:** the AGE-backed SOPS key is decrypted and applied as the `sops-age` secret into `flux-system` - after the Flux install creates the namespace, and before the root `Kustomization` is applied, so decryption never races the first reconcile.
+* **Identity Injection:** the AGE-backed SOPS key is decrypted and applied as the `sops-age` secret into `flux-system`, and the persistent read-only deploy key (Section 6) is applied as the `git-credentials` secret - both after the Flux install creates the namespace, and before the root `Kustomization` is applied, so decryption and Git authentication never race the first reconcile.
 * **Self-Configuration:** the `GitRepository` and root `Kustomization` are applied, and Flux reconciles the "turnkey" payload from `clusters/workload/`:
   * **Networking:** Cilium (eBPF-native CNI/L4-LB, no kube-proxy; adopted from the bootstrap install).
   * **Traffic:** Cloudflare Tunnel for secure ingress.
@@ -135,10 +135,14 @@ This section replaces the earlier unqualified "manifests must be identical to AW
     A bespoke template was authored in response.
   * 2026-07-06 (morning): template patches fixed, then the CAPD bootstrap-exec incompatibility surfaced and was briefly framed as a two-option substrate decision (drop CAPD vs swap to Incus).
     The zoom-out later that day resolved it as above.
+* **Phase 2 green (2026-07-07):** `clusters/workload/` stands up the declarative in-cluster Flux loop - `flux-system/` (Flux controllers + `GitRepository`/root `Kustomization`) and `infrastructure/cilium/` (`HelmRepository`/`HelmRelease` adopting the Phase 0 bootstrap task's imperative Cilium install in place).
+  Live-verified end-to-end three times from a clean `teardown` (see `PLAN-ephemeral-gitops-idp-2026-07-05.md` Phase 2 for the full evidence trail, including two real bugs a doubt-driven-development review and live testing caught and fixed: a values-file duplication that silently violated the single-source-of-truth precondition, and a server-side-apply field conflict between Helm CLI and helm-controller on re-entry after adoption).
+  The CAPI-consumability contract (Section 5) is now a checkable doc at `clusters/workload/README.md`, not just this section's prose.
 * **State Persistence:** determine the strategy for local volume snapshotting if ephemeral cluster development requires "re-hydrating" database state across reboots.
-* **Flux source and local iteration loop (new, 2026-07-06):** decide what Git source the in-cluster Flux tracks (this repository's GitHub remote is the default assumption) and how a developer iterates on uncommitted manifest changes against an ephemeral cluster (push-to-branch, OCI artifact push, or local build-and-diff tooling).
-  Resolve during Phase 2 of the plan.
-* **Overlay Strategy:** finalize the Kustomize layout so the workload overlay honors the CAPI-consumability contract (Section 5) and the future cloud milestone only adds provisioning manifests without touching the overlay.
+* **Flux source and local iteration loop (resolved 2026-07-07):** Flux tracks this repository's GitHub remote (confirmed private) via a persistent, one-time read-only SSH deploy key; local iteration on uncommitted changes uses a scratch branch the `GitRepository` tracks, repointed via `kubectl patch` and back to `main` when done.
+  Full rationale in `clusters/workload/README.md` and the plan's Decisions section.
+* **Overlay Strategy (resolved 2026-07-07):** the Kustomize layout is `clusters/workload/{flux-system,infrastructure}/`, with `infrastructure/kustomization.yaml` aggregating components so adding one doesn't require editing the root `kustomization.yaml`.
+  Honors the CAPI-consumability contract; cleared a doubt-driven-development review (see the plan's Phase 2 status).
 
 ## 7. Success Metrics
 
@@ -175,6 +179,6 @@ Per `ZOR-ephemeral-gitops-idp-2026-07-06.md` (verdict: re-frame recommended, con
 
 ### Next Steps for Implementation
 
-1. **Rewrite the spike tasks around `talosctl cluster create`** and drive the three Section 4 gates to green (plan, Phase 0).
-2. **Repository Setup:** build `clusters/workload/` for Flux with the overlay honoring the CAPI-consumability contract (plan, Phase 2).
+1. **Done (2026-07-06).** Rewrote the spike tasks around `talosctl cluster create` and drove the three Section 4 gates to green (plan, Phase 0).
+2. **Done (2026-07-07).** Built `clusters/workload/` for Flux with the overlay honoring the CAPI-consumability contract (plan, Phase 2).
 3. **Secret Management:** keep the software AGE key for v1; schedule the `age-plugin-yubikey` hardening milestone (Section 3.2).

@@ -26,6 +26,9 @@ See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requiremen
 │   ├── markdownlint/   # Markdown structural linting
 │   ├── talos/          # Talos machine-config patches (CNI/kube-proxy disable) for talosctl
 │   └── cliff.toml      # git-cliff changelog generation config
+├── clusters/workload/  # Flux-reconciled turnkey payload (CAPI-consumability contract in its README)
+│   ├── flux-system/    # Flux controllers + GitRepository/Kustomization source-and-sync objects
+│   └── infrastructure/cilium/  # Cilium HelmRelease, adopting the bootstrap task's imperative install
 ├── docs/
 │   └── planning/       # PRD, plan, ADRs, and zoom-out reviews for this project
 └── docs/LICENSE
@@ -47,7 +50,7 @@ mise run sops:project:manage   # Create/edit the encrypted project secrets file
 mise run app:start         # Start the app via Docker Compose
 ```
 
-The Talos + Cilium spike test gates are defined under `test-talos-spike:*` (see `.config/mise/tasks/test-talos-spike.toml`); run `mise run test-talos-spike:all` to provision a cluster and drive all three gates (Cilium/eBPF compatibility, cross-node pod connectivity, LoadBalancer IP allocation and reachability), or `mise run test-talos-spike:teardown` to tear it back down.
+The full bootstrap chain is defined under `test-talos-spike:*` (see `.config/mise/tasks/test-talos-spike.toml`); run `mise run test-talos-spike:all` to provision a cluster, install Cilium, bootstrap Flux to reconcile `clusters/workload/` from Git (adopting the Cilium release in place), and drive all three verification gates (Cilium/eBPF compatibility, cross-node pod connectivity, LoadBalancer IP allocation and reachability), or `mise run test-talos-spike:teardown` to tear it back down.
 
 ## Quality Standards
 
