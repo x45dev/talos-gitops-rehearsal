@@ -2,10 +2,18 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - cilium
-# Add future infrastructure components (cert-manager, Dex, etc. per PRD Section 5) as
-# a new directory here, not as an edit to the root clusters/workload/kustomization.yaml
+  # cert-manager.yaml holds the Flux Kustomization CRs, NOT the component manifests -
+  # the manifests under cert-manager/controllers and cert-manager/configs are
+  # reconciled by those CRs via spec.path, so they are deliberately absent from this
+  # list (adding them here would double-reconcile them). See cert-manager.yaml.
+  - cert-manager.yaml
+# Add future infrastructure components (Dex, Cloudflare Tunnel, etc. per PRD Section 5)
+# as a new directory here, not as an edit to the root clusters/workload/kustomization.yaml
 # (doubt-driven-development review, 2026-07-07: a flat root-level resource list was
 # the first thing that would need to change every time a component was added).
+# A component needing dependsOn ordering (a CRD provider plus custom resources that
+# consume those CRDs) follows the cert-manager pattern: a <component>.yaml of Flux
+# Kustomization CRs here, plus controllers/ and configs/ subdirs those CRs point at.
 # Give each component's ConfigMapGenerator a component-prefixed name (e.g.
 # `cilium-values`, not `values`) - disableNameSuffixHash means these names are not
 # content-hashed, so an unprefixed generic name risks a duplicate-resource-ID collision

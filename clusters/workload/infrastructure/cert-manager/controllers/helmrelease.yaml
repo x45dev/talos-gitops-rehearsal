@@ -1,0 +1,33 @@
+# cert-manager chart. crds.enabled installs the CRDs as part of the release, so they
+# exist by the time this HelmRelease is Ready; the ClusterIssuer/Certificate CRs in
+# ../configs consume those CRDs and the webhook, so cert-manager-configs is gated
+# behind cert-manager-controllers (dependsOn + wait). The exact readiness mechanism
+# that makes that gate cover the webhook (not just the CRDs) is documented in
+# ../../cert-manager.yaml - it rests on helm-controller's default resource-wait.
+# Values are inlined (spec.values) rather than a valuesFrom ConfigMap: unlike Cilium,
+# cert-manager has no imperative-install counterpart sharing a values file, so there is
+# no cross-file-sync requirement to justify the extra ConfigMapGenerator indirection.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  interval: 10m
+  releaseName: cert-manager
+  targetNamespace: cert-manager
+  storageNamespace: cert-manager
+  chart:
+    spec:
+      chart: cert-manager
+      version: "v1.20.3"
+      sourceRef:
+        kind: HelmRepository
+        name: jetstack
+        namespace: cert-manager
+  values:
+    crds:
+      enabled: true
+      # Keep the CRDs on uninstall so in-flight Certificate/Issuer objects are not
+      # garbage-collected out from under a partial teardown.
+      keep: true

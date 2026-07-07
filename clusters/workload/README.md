@@ -31,8 +31,17 @@ Nothing under this directory may reference:
 - The Cilium `HelmRelease` and its values (`infrastructure/cilium/`) - chart, version,
   and Talos-specific values (KubePrism endpoint, cgroup/capability settings) all carry
   over, because Talos itself (not `talosctl`) is the constant across local and cloud.
-- Any future application/workload `HelmRelease`s and `Kustomization`s added under this
-  tree (Phase 3 turnkey payload).
+- cert-manager and the local Root CA issuer chain (`infrastructure/cert-manager/`) -
+  the `HelmRelease` (`controllers/`) and the `selfsigned` -> `root-ca` -> `local-ca`
+  issuer chain (`configs/`). This is the first component using per-component Flux
+  `Kustomization` CRs (`infrastructure/cert-manager.yaml`) rather than the root
+  `Kustomization`: a CRD provider whose custom resources must wait for its CRDs and
+  webhook needs an explicit `controllers`-then-`configs` `dependsOn` ordering, which a
+  flat aggregation cannot express. Any future component with that shape follows the same
+  pattern (a `<component>.yaml` of `Kustomization` CRs plus `controllers/`+`configs/`
+  subdirs); components without CRD-ordering needs can stay flat like Cilium.
+- Any further application/workload `HelmRelease`s and `Kustomization`s added under this
+  tree (remaining Phase 3 turnkey payload: Dex, Cloudflare Tunnel).
 
 ## What is environment-specific, and deliberately lives outside this tree
 

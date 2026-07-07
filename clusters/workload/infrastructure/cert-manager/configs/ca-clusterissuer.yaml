@@ -1,0 +1,10 @@
+# The workload-facing issuer. Every in-cluster serving certificate (Dex, etc.) is
+# issued from this, chaining to the local Root CA above. Cluster-scoped so any
+# namespace can reference it.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: local-ca
+spec:
+  ca:
+    secretName: root-ca-secret

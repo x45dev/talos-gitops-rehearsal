@@ -1,0 +1,63 @@
+# Flux Kustomization CRs that layer cert-manager into a controllers-then-configs
+# ordering (the standard upstream Flux pattern for CRD-provider + custom-resource
+# splits). This is the first use of per-component Flux Kustomizations in this repo:
+# Cilium is reconciled directly by the root `flux-system` Kustomization, but the
+# ClusterIssuer/Certificate custom resources in ./cert-manager/configs cannot be
+# applied until the cert-manager CRDs and webhook exist, which requires an explicit
+# dependsOn + wait ordering that a single flat Kustomization cannot express.
+#
+# These two CRs are the only cert-manager resources pulled into the root kustomize
+# build (via infrastructure/kustomization.yaml). The ./cert-manager/controllers and
+# ./cert-manager/configs directories are NOT listed in any root-reconciled
+# kustomization.yaml - each is reconciled exactly once, by its own Kustomization below,
+# via spec.path. Listing them at root too would double-reconcile them.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cert-manager-controllers
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./clusters/workload/infrastructure/cert-manager/controllers
+  prune: true
+  # wait: true blocks this Kustomization from reporting Ready until the cert-manager
+  # HelmRelease reports Ready. The load-bearing detail is WHY that transitively means
+  # the webhook is serving: Flux's helm-controller waits for the release's own
+  # resources to become ready before marking the HelmRelease Ready, because
+  # spec.install.disableWait defaults to false (poller WaitStrategy). So the chain is
+  #   Kustomization wait -> HelmRelease Ready -> helm-controller resource-wait ->
+  #   cert-manager controller/webhook/cainjector Deployments ready
+  # which is what makes the configs dependsOn a genuine "CRDs installed AND webhook
+  # serving" gate, not merely a "manifests applied" gate. This gate rests on
+  # helm-controller's default resource-wait, NOT on Kustomization wait: true alone:
+  # do NOT set disableWait: true on the cert-manager HelmRelease without also adding an
+  # explicit spec.healthChecks entry for the webhook Deployment here - otherwise the
+  # ClusterIssuer/Certificate applies in ./cert-manager/configs would race the webhook
+  # and fail (until a retryInterval reconcile) with "no endpoints available for service
+  # cert-manager-webhook". Relying on the version-agnostic default wait, rather than a
+  # healthCheck keyed to the (chart-version-dependent) webhook Deployment name, is a
+  # deliberate trade-off - see the Phase 3 notes in the plan.
+  wait: true
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cert-manager-configs
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./clusters/workload/infrastructure/cert-manager/configs
+  prune: true
+  wait: true
+  timeout: 5m
+  dependsOn:
+    - name: cert-manager-controllers
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
