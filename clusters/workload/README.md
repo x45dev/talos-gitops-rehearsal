@@ -106,3 +106,24 @@ workflow.
   both live in this namespace with no egress scoping around the controllers that mount
   them. Accepted for v1 alongside this project's other deferred hardening item (the
   YubiKey-backed AGE key, PRD Section 3.2) rather than solved here.
+- **The Cloudflare Tunnel's ingress config is not Flux-reconciled.** Unlike every other
+  component in this tree, `infrastructure/cloudflare-tunnel/ingress.yaml`'s desired
+  state is enforced by Cloudflare's control plane, not by Kubernetes - pushed via API
+  by the imperative `test-talos-spike:cloudflare-tunnel-bootstrap` task, not by a Flux
+  `Kustomization`. This is a structural property of the tunnel being created with
+  `remote_config: true` (token-mode `cloudflared`), not a choice made for its own sake.
+  The desired ingress rules still live in Git in that file; only the enforcement point
+  is external. Practical consequence: any ingress rule added directly via the
+  Cloudflare dashboard between bootstrap runs is silently overwritten on the next run
+  (the push is an unconditional full replace, not a diff).
+- **`cloudflared`'s origin connection to Dex skips TLS verification** (`noTLSVerify:
+  true` in `ingress.yaml`), even though Dex terminates TLS with a cert-manager-issued
+  certificate from `local-ca`. The tunnel-to-Dex hop never leaves the cluster's pod
+  network, so there is no untrusted network segment being crossed - verifying against
+  the local CA would need mounting its bundle into `cloudflared` too, for marginal
+  benefit at v1. Revisit if this tunnel ever fronts more than a single-user local dev
+  cluster.
+- **Dex's GitHub connector has no org/team restriction configured.** Any GitHub account
+  can authenticate - there is no `orgs:` filter in the connector config. Acceptable for
+  a single-user local ephemeral IDP; add an `orgs:` restriction before this ever serves
+  more than one person.

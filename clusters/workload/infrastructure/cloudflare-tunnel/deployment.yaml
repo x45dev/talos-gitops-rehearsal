@@ -1,0 +1,66 @@
+# No official Cloudflare Helm chart exists for cloudflared (unlike Cilium/cert-manager/
+# Dex, all of which have one) - a raw Deployment is the standard, documented deployment
+# shape for this component, not a corner cut for lack of trying.
+#
+# TUNNEL_TOKEN is injected pre-Flux as the cloudflare-tunnel-token Secret
+# (test-talos-spike:cloudflare-tunnel-bootstrap), refreshed on every bootstrap run -
+# never written to Git. --metrics/probes follow Cloudflare's own documented k8s
+# deployment example (the /ready endpoint reports the tunnel's active edge
+# connections, not just process liveness).
+#
+# readinessProbe matters beyond the usual traffic-gating reason (there is no Service in
+# front of this Deployment, so nothing reads Pod readiness for routing): it is what
+# makes the cloudflare-tunnel Kustomization's wait: true condition mean "actually
+# connected to Cloudflare's edge" rather than just "container started" (doubt-driven-
+# development finding, 2026-07-11 - see gotk-sync.yaml's root Kustomization comment for
+# the same class of issue one level up).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflare-tunnel
+spec:
+  replicas: 2 # Cloudflare recommends >=2 for redundant edge connections
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.7.1
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-tunnel-token
+                  key: TUNNEL_TOKEN
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi

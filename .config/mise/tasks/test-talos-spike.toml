@@ -143,9 +143,141 @@ spec:
 EOF
 """
 
+["test-talos-spike:cloudflare-tunnel-bootstrap"]
+description = "3b. Idempotently create/configure the Cloudflare Tunnel and inject its token as a k8s Secret"
+depends = ["test-talos-spike:provision"]
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+export KUBECONFIG=$KUBECONFIG_WORK
+
+CF_API="https://api.cloudflare.com/client/v4"
+AUTH_HEADER="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+
+# --- Find or create the tunnel ---
+# config_src: "cloudflare" (remote-managed) means ingress rules live in Cloudflare's
+# control plane, not a local config file - pushed below via the /configurations API,
+# sourced from the checked-in clusters/workload/infrastructure/cloudflare-tunnel/
+# ingress.yaml. See that file's header comment for the accepted trade-off (plan Phase 3
+# decisions, 2026-07-11). tunnel_secret is deliberately omitted from the create call -
+# it is only required for config_src: "local" tunnels (verified against Cloudflare's
+# API reference, not assumed).
+echo "=> Looking up Cloudflare Tunnel '$CLOUDFLARE_TUNNEL_NAME'..."
+LOOKUP_RESPONSE=$(curl -sf -H "$AUTH_HEADER" \
+  "$CF_API/accounts/$CLOUDFLARE_ACCOUNT_ID/cfd_tunnel?name=$CLOUDFLARE_TUNNEL_NAME&is_deleted=false")
+if [ "$(echo "$LOOKUP_RESPONSE" | jq -r '.success')" != "true" ]; then
+    echo "❌ Failed to look up Cloudflare Tunnel '$CLOUDFLARE_TUNNEL_NAME': $(echo "$LOOKUP_RESPONSE" | jq -c '.errors')" >&2
+    exit 1
+fi
+TUNNEL_ID=$(echo "$LOOKUP_RESPONSE" | jq -r '.result[0].id // empty')
+
+if [ -n "$TUNNEL_ID" ]; then
+    # A same-named tunnel created outside this task (e.g. via `cloudflared tunnel
+    # login`/`create`) could be config_src: "local", in which case pushing to
+    # /configurations below would silently no-op from cloudflared's perspective - it
+    # would ignore the remote config entirely (doubt-driven-development finding,
+    # 2026-07-11). Fail loudly rather than proceed against a tunnel this task cannot
+    # actually control.
+    REMOTE_CONFIG=$(echo "$LOOKUP_RESPONSE" | jq -r '.result[0].remote_config')
+    if [ "$REMOTE_CONFIG" != "true" ]; then
+        echo "❌ Tunnel '$CLOUDFLARE_TUNNEL_NAME' ($TUNNEL_ID) exists but is not remote-config-managed (remote_config=$REMOTE_CONFIG) - this task cannot push ingress rules to a locally-managed tunnel. Delete it or rename this task's CLOUDFLARE_TUNNEL_NAME to avoid the collision." >&2
+        exit 1
+    fi
+fi
+
+if [ -z "$TUNNEL_ID" ]; then
+    echo "=> No existing tunnel found - creating '$CLOUDFLARE_TUNNEL_NAME'..."
+    CREATE_RESPONSE=$(curl -sf -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" \
+      "$CF_API/accounts/$CLOUDFLARE_ACCOUNT_ID/cfd_tunnel" \
+      --data "{\"name\":\"$CLOUDFLARE_TUNNEL_NAME\",\"config_src\":\"cloudflare\"}")
+    TUNNEL_ID=$(echo "$CREATE_RESPONSE" | jq -r '.result.id // empty')
+    if [ -z "$TUNNEL_ID" ]; then
+        echo "❌ Failed to create Cloudflare Tunnel: $(echo "$CREATE_RESPONSE" | jq -c '.errors')" >&2
+        exit 1
+    fi
+    echo "✅ Created tunnel $TUNNEL_ID"
+else
+    echo "✅ Found existing tunnel $TUNNEL_ID"
+fi
+
+# --- Push the desired ingress config (unconditional PUT - cheap, no destructive
+# side effect on the running connector, unlike Cilium's DaemonSet restart, so no
+# before/after diff is worth the extra complexity) ---
+echo "=> Pushing ingress config from clusters/workload/infrastructure/cloudflare-tunnel/ingress.yaml..."
+INGRESS_JSON=$(yq -o=json eval clusters/workload/infrastructure/cloudflare-tunnel/ingress.yaml)
+CONFIG_RESPONSE=$(curl -sf -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/json" \
+  "$CF_API/accounts/$CLOUDFLARE_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/configurations" \
+  --data "$(jq -n --argjson ingress "$INGRESS_JSON" '{config: $ingress}')")
+if [ "$(echo "$CONFIG_RESPONSE" | jq -r '.success')" != "true" ]; then
+    echo "❌ Failed to push tunnel ingress config: $(echo "$CONFIG_RESPONSE" | jq -c '.errors')" >&2
+    exit 1
+fi
+echo "✅ Ingress config applied."
+
+# --- Ensure the DNS CNAME exists, proxied (orange-cloud) so requests route through
+# the tunnel rather than resolving directly ---
+echo "=> Ensuring DNS record for $IDP_DOMAIN..."
+DNS_LOOKUP_RESPONSE=$(curl -sf -H "$AUTH_HEADER" \
+  "$CF_API/zones/$CLOUDFLARE_ZONE_ID/dns_records?type=CNAME&name=$IDP_DOMAIN")
+if [ "$(echo "$DNS_LOOKUP_RESPONSE" | jq -r '.success')" != "true" ]; then
+    echo "❌ Failed to look up DNS records for $IDP_DOMAIN: $(echo "$DNS_LOOKUP_RESPONSE" | jq -c '.errors')" >&2
+    exit 1
+fi
+MATCH_COUNT=$(echo "$DNS_LOOKUP_RESPONSE" | jq -r '.result | length')
+if [ "$MATCH_COUNT" -gt 1 ]; then
+    echo "❌ Found $MATCH_COUNT CNAME records for $IDP_DOMAIN, expected at most 1 - resolve the duplicate manually before this task can safely upsert." >&2
+    exit 1
+fi
+EXISTING_RECORD=$(echo "$DNS_LOOKUP_RESPONSE" | jq -r '.result[0] // empty')
+TUNNEL_CNAME="${TUNNEL_ID}.cfargotunnel.com"
+DNS_BODY=$(jq -n --arg name "$IDP_DOMAIN" --arg content "$TUNNEL_CNAME" \
+  '{type: "CNAME", name: $name, content: $content, proxied: true}')
+
+if [ -z "$EXISTING_RECORD" ]; then
+    echo "   Creating new CNAME $IDP_DOMAIN -> $TUNNEL_CNAME"
+    DNS_RESPONSE=$(curl -sf -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" \
+      "$CF_API/zones/$CLOUDFLARE_ZONE_ID/dns_records" --data "$DNS_BODY")
+else
+    RECORD_ID=$(echo "$EXISTING_RECORD" | jq -r '.id')
+    echo "   Updating existing CNAME record ($RECORD_ID) -> $TUNNEL_CNAME"
+    DNS_RESPONSE=$(curl -sf -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/json" \
+      "$CF_API/zones/$CLOUDFLARE_ZONE_ID/dns_records/$RECORD_ID" --data "$DNS_BODY")
+fi
+if [ "$(echo "$DNS_RESPONSE" | jq -r '.success')" != "true" ]; then
+    echo "❌ Failed to upsert DNS record: $(echo "$DNS_RESPONSE" | jq -c '.errors')" >&2
+    exit 1
+fi
+echo "✅ DNS record in place."
+
+# --- Fetch a fresh connector token and inject it as a k8s Secret ---
+# Namespace is created imperatively here (not left to Flux) for the same chicken-egg
+# reason flux-system's namespace predates its own secret injection: the Secret must
+# exist before cloudflared's Deployment (Flux-reconciled) schedules a pod referencing
+# it, and Flux hasn't run yet at this point in the bootstrap chain.
+echo "=> Fetching tunnel token and injecting cloudflare-tunnel-token Secret..."
+TUNNEL_TOKEN=$(curl -sf -H "$AUTH_HEADER" \
+  "$CF_API/accounts/$CLOUDFLARE_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/token" | jq -r '.result')
+if [ -z "$TUNNEL_TOKEN" ] || [ "$TUNNEL_TOKEN" = "null" ]; then
+    echo "❌ Failed to fetch a tunnel token." >&2
+    exit 1
+fi
+# This Namespace is also declared in Flux's cloudflare-tunnel/namespace.yaml (server-
+# side apply, once Flux reconciles), so two field managers touch the same object - the
+# same category of risk documented above for Cilium's HelmRelease adoption. Judged safe
+# without a matching "confirmed live" claim (unlike Cilium's) because both manifests are
+# byte-identical minimal Namespace objects (apiVersion/kind/metadata.name only, no
+# contested fields) - not empirically verified the way the Cilium conflict was, so
+# watch for this specifically during Phase 3 live verification.
+kubectl create namespace cloudflare-tunnel --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic cloudflare-tunnel-token -n cloudflare-tunnel \
+  --from-literal=TUNNEL_TOKEN="$TUNNEL_TOKEN" \
+  --dry-run=client -o yaml | kubectl apply -f -
+echo "✅ Cloudflare Tunnel '$CLOUDFLARE_TUNNEL_NAME' ($TUNNEL_ID) ready for cloudflared to connect."
+"""
+
 ["test-talos-spike:flux-bootstrap"]
 description = "4. Install Flux, inject secrets, and hand Cilium day-2 management to Git"
-depends = ["test-talos-spike:cilium"]
+depends = ["test-talos-spike:cilium", "test-talos-spike:cloudflare-tunnel-bootstrap"]
 run = """
 #!/usr/bin/env bash
 set -e
@@ -174,11 +306,26 @@ kubectl create secret generic git-credentials -n flux-system \
   --from-literal=known_hosts="$GITHUB_KNOWN_HOSTS" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+# dex namespace is created here, not left to Flux's own namespace.yaml, for the same
+# reason cloudflare-tunnel's is: the Secret below must exist before Dex's Deployment
+# (Flux-reconciled) schedules a pod referencing it via envVars.secretKeyRef.
+echo "=> Injecting dex-github-oauth secret (decrypted in-memory via mise/SOPS - never written to disk)..."
+kubectl create namespace dex --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic dex-github-oauth -n dex \
+  --from-literal=GITHUB_CLIENT_ID="$GITHUB_OAUTH_CLIENT_ID" \
+  --from-literal=GITHUB_CLIENT_SECRET="$GITHUB_OAUTH_CLIENT_SECRET" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 echo "=> Applying GitRepository + root Kustomization..."
 kubectl apply -f clusters/workload/flux-system/gotk-sync.yaml
 
 echo "=> Waiting for the root Kustomization to reconcile..."
-kubectl wait --for=condition=ready kustomization/flux-system -n flux-system --timeout=5m
+# 16m, not 5m: the root Kustomization now sets wait: true (doubt-driven-development
+# finding, 2026-07-11), so its own Ready condition genuinely waits on every nested
+# Kustomization (cert-manager-controllers/-configs, dex, cloudflare-tunnel) reaching
+# kstatus Ready, not just on the top-level manifests applying. Its spec.timeout is 15m;
+# give kubectl wait 1m of headroom on top of that rather than racing it.
+kubectl wait --for=condition=ready kustomization/flux-system -n flux-system --timeout=16m
 echo "✅ Flux is reconciling clusters/workload from Git."
 """
 
@@ -318,6 +465,85 @@ done
 echo "✅ LoadBalancer IP $EXTERNAL_IP reachable from host."
 """
 
+["test-talos-spike:verify-phase3"]
+description = "7. Verify the Phase 3 turnkey payload against the plan's exit criteria (Dex + Cloudflare Tunnel)"
+depends = ["test-talos-spike:flux-bootstrap"]
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+export KUBECONFIG=$KUBECONFIG_WORK
+
+echo "=> Checking dex and cloudflare-tunnel Kustomizations reached Ready..."
+kubectl wait --for=condition=ready kustomization/dex -n flux-system --timeout=1m
+kubectl wait --for=condition=ready kustomization/cloudflare-tunnel -n flux-system --timeout=1m
+echo "✅ Both per-component Kustomizations Ready."
+
+echo "=> Checking the dex-tls Certificate was issued from local-ca (proves the local Root CA chain end-to-end, not just that it exists unused)..."
+kubectl wait --for=condition=ready certificate/dex-tls -n dex --timeout=1m
+ISSUER=$(kubectl get certificate/dex-tls -n dex -o jsonpath='{.spec.issuerRef.name}')
+if [ "$ISSUER" != "local-ca" ]; then
+    echo "❌ dex-tls Certificate issuerRef is '$ISSUER', expected 'local-ca'." >&2
+    exit 1
+fi
+echo "✅ cert-manager issued dex-tls from local-ca."
+
+echo "=> Checking the Cloudflare Tunnel reports a live connection..."
+CF_API="https://api.cloudflare.com/client/v4"
+AUTH_HEADER="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+TUNNEL_STATUS=$(curl -sf -H "$AUTH_HEADER" \
+  "$CF_API/accounts/$CLOUDFLARE_ACCOUNT_ID/cfd_tunnel?name=$CLOUDFLARE_TUNNEL_NAME&is_deleted=false" \
+  | jq -r '.result[0].status')
+if [ "$TUNNEL_STATUS" != "healthy" ]; then
+    echo "❌ Tunnel status is '$TUNNEL_STATUS', expected 'healthy' - cloudflared may not have connected yet." >&2
+    exit 1
+fi
+echo "✅ Tunnel status: healthy."
+
+echo "=> Checking Dex serves its OIDC discovery document through the tunnel (end-to-end request reaches the in-cluster service)..."
+attempt=1
+max_attempts=30
+until DISCOVERY=$(curl -sf --max-time 5 "https://$IDP_DOMAIN/.well-known/openid-configuration" 2>/dev/null); do
+    if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "❌ https://$IDP_DOMAIN/.well-known/openid-configuration unreachable after ${max_attempts} attempts (DNS propagation or tunnel routing not settled)." >&2
+        exit 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 2
+done
+DISCOVERY_ISSUER=$(echo "$DISCOVERY" | jq -r '.issuer')
+if [ "$DISCOVERY_ISSUER" != "https://$IDP_DOMAIN" ]; then
+    echo "❌ Discovery document issuer is '$DISCOVERY_ISSUER', expected 'https://$IDP_DOMAIN'." >&2
+    exit 1
+fi
+echo "✅ Dex OIDC discovery document served through the tunnel, issuer matches."
+
+# A real OAuth round trip needs a human in a browser, out of scope for automated
+# verification - no staticClient is registered (deliberately, see dex/helmrelease.yaml),
+# so /auth can't be driven end-to-end here. This checks the layer below it instead: the
+# Secret's value actually reached the pod's environment, which combined with dexidp/
+# dex's source-verified expand_env default (see helmrelease.yaml's header comment) is
+# the practical stopping point for automated verification of the GitHub connector.
+echo "=> Confirming GITHUB_CLIENT_ID reached the Dex pod's environment..."
+DEX_POD=$(kubectl get pods -n dex -l app.kubernetes.io/name=dex -o jsonpath='{.items[0].metadata.name}')
+POD_CLIENT_ID=$(kubectl exec -n dex "$DEX_POD" -- printenv GITHUB_CLIENT_ID)
+SECRET_CLIENT_ID=$(kubectl get secret dex-github-oauth -n dex -o jsonpath='{.data.GITHUB_CLIENT_ID}' | base64 -d)
+if [ "$POD_CLIENT_ID" != "$SECRET_CLIENT_ID" ]; then
+    echo "❌ Dex pod's GITHUB_CLIENT_ID env var does not match the injected Secret." >&2
+    exit 1
+fi
+echo "✅ GITHUB_CLIENT_ID reached the Dex pod's environment."
+
+echo "=> Checking for zero SOPS decryption failures across all Kustomizations..."
+DECRYPT_FAILURES=$(kubectl get kustomizations -A -o json | jq -r '.items[] | select(.status.conditions[]? | select(.reason == "DecryptionFailed")) | .metadata.name')
+if [ -n "$DECRYPT_FAILURES" ]; then
+    echo "❌ Kustomization(s) with a DecryptionFailed condition: $DECRYPT_FAILURES" >&2
+    exit 1
+fi
+echo "✅ Zero SOPS decryption failures."
+
+echo "🎉 Phase 3 exit criteria met."
+"""
+
 ["test-talos-spike:teardown"]
 description = "Destroy the Talos cluster and verify zero residue"
 run = """
@@ -355,5 +581,5 @@ echo "🧹 Environment wiped clean, zero residue confirmed."
 
 ["test-talos-spike:all"]
 description = "Run the entire spike test"
-depends = ["test-talos-spike:validate", "test-talos-spike:verify-adoption"]
+depends = ["test-talos-spike:validate", "test-talos-spike:verify-adoption", "test-talos-spike:verify-phase3"]
 run = "echo 'Spike test execution complete.'"

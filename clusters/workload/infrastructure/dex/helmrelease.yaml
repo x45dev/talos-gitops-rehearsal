@@ -1,0 +1,91 @@
+# GitHub OAuth client ID/secret are injected pre-Flux as the `dex-github-oauth` Secret
+# (test-talos-spike:flux-bootstrap, same imperative-secret pattern as sops-age and
+# git-credentials) and referenced here as pod env vars. Dex expands `$VARNAME` in its
+# connector config against the process environment by default (dexidp/dex's
+# `expand_env` feature flag defaults to true - verified against cmd/dex/config.go, not
+# assumed), so clientID/clientSecret below are never written to Git in any form.
+#
+# storage.type: memory - state does not need to survive a pod restart or cluster
+# cycle; this is a local ephemeral IDP, not a production identity provider. Avoids the
+# extra CRDs/RBAC the `kubernetes` storage backend would need for no benefit here.
+#
+# TLS: terminated by Dex itself (https.enabled + the volume mount below) using the
+# dex-tls Certificate issued from local-ca. The Cloudflare Tunnel's origin service
+# definition talks to this over HTTPS with noTLSVerify (see cloudflare-tunnel/
+# ingress.yaml) rather than trusting the local CA - see that file's header comment for
+# the accepted trade-off.
+#
+# certificate.yaml and this HelmRelease apply together in one flat Kustomization (no
+# controllers/configs split, unlike cert-manager) - if the dex-tls Secret doesn't exist
+# the instant the pod schedules, the volume mount blocks (FailedMount) until cert-manager
+# issues it, which is near-instant since local-ca is already Ready by the time this
+# Kustomization's dependsOn gate opens. Self-healing via kubelet's mount retry, not a
+# race worth a second Kustomization for.
+#
+# The Helm value keys used below (envVars, volumes, volumeMounts, config passthrough)
+# and the liveness/readiness-probe behavior with https.enabled but no config.web.http
+# were verified against dex/dex chart v0.24.1's actual templates (`helm pull --untar`
+# + reading deployment.yaml/service.yaml directly), not just `helm show values`
+# (doubt-driven-development finding, 2026-07-11). The chart unconditionally passes
+# `--web-http-addr`/`--telemetry-addr` as CLI flags regardless of this file's config -
+# these override config.web.http/config.telemetry.http, so the chart's stock probes
+# (which target the always-on telemetry port 5558) work independent of the https-only
+# config below; the plain HTTP listener also always runs whether or not it's referenced
+# here, which is fine since nothing in this payload points at it.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  interval: 10m
+  releaseName: dex
+  targetNamespace: dex
+  storageNamespace: dex
+  chart:
+    spec:
+      chart: dex
+      version: "0.24.1"
+      sourceRef:
+        kind: HelmRepository
+        name: dexidp
+        namespace: dex
+  values:
+    https:
+      enabled: true
+    volumes:
+      - name: dex-tls
+        secret:
+          secretName: dex-tls
+    volumeMounts:
+      - name: dex-tls
+        mountPath: /etc/dex/tls
+        readOnly: true
+    envVars:
+      - name: GITHUB_CLIENT_ID
+        valueFrom:
+          secretKeyRef:
+            name: dex-github-oauth
+            key: GITHUB_CLIENT_ID
+      - name: GITHUB_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: dex-github-oauth
+            key: GITHUB_CLIENT_SECRET
+    config:
+      issuer: https://idp.x45.dev
+      storage:
+        type: memory
+      web:
+        https: 0.0.0.0:5554
+        tlsCert: /etc/dex/tls/tls.crt
+        tlsKey: /etc/dex/tls/tls.key
+      enablePasswordDB: false
+      connectors:
+        - type: github
+          id: github
+          name: GitHub
+          config:
+            clientID: $GITHUB_CLIENT_ID
+            clientSecret: $GITHUB_CLIENT_SECRET
+            redirectURI: https://idp.x45.dev/callback

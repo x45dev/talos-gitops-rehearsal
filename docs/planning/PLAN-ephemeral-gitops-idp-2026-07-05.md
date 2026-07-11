@@ -2,8 +2,8 @@
 id: PLAN-ephemeral-gitops-idp
 title: Implementation plan - Ephemeral GitOps IDP (Local Edition)
 status: draft
-version: 0.7.0
-date: 2026-07-07
+version: 0.8.0
+date: 2026-07-11
 ---
 
 # Implementation plan - Ephemeral GitOps IDP
@@ -122,8 +122,9 @@ All three gates green on every completed pass; `GitRepository`/`Kustomization` b
 
 ## Phase 3 - Turnkey payload
 
-**Status: in progress (2026-07-07).** cert-manager (+ local Root CA `ClusterIssuer`) is built and build-validated (`kubectl kustomize` on the root and both sub-layers) and passed a doubt-driven-development review; it is **not yet live-verified** against an ephemeral cluster - the full-payload live run is the Phase 3 exit gate and needs Dex + Cloudflare Tunnel in place first.
-Dex and Cloudflare Tunnel are **not started**: both need external inputs the repo cannot fabricate (a domain, a Cloudflare tunnel token, and a Dex connector/client strategy), pending from the user.
+**Status: in progress (2026-07-11).** cert-manager (+ local Root CA `ClusterIssuer`) is built, build-validated, and passed a doubt-driven-development review.
+The three external-input decisions blocking Dex and Cloudflare Tunnel (domain, tunnel credentialing, Dex connector) are now closed - see Decisions below - and both components are being built against them.
+Still **not yet live-verified** against an ephemeral cluster; the full-payload live run remains the Phase 3 exit gate.
 
 Build the target-cluster self-configuration as Flux `HelmRelease`/`Kustomization` objects under `clusters/workload/`:
 
@@ -185,6 +186,14 @@ Deliberately unscheduled; triggered by a real CAPA/cloud deployment getting plan
 4. **Flux source and local iteration loop (2026-07-07):** this repository's GitHub remote (confirmed private via `gh repo view`), authenticated with a persistent, one-time read-only SSH deploy key (generated via `gh repo deploy-key add`, private half stored encrypted in the existing project SOPS secrets file) rather than one minted/revoked per cluster cycle.
    Local iteration on uncommitted changes: a scratch branch the `GitRepository` tracks (`kubectl patch gitrepository/flux-system ... -p '{"spec":{"ref":{"branch":"<scratch-branch>"}}}'`), chosen over an OCI-artifact push or offline `flux build` diffing because it keeps the source *kind* identical between local and cloud.
    Full rationale and the mechanism's accepted gaps: `clusters/workload/README.md`.
+5. **Phase 3 external inputs (2026-07-11):** three decisions the repo could not fabricate on its own, all supplied by the user:
+   - **Domain:** `idp.x45.dev`, an existing zone the user already manages on Cloudflare (zone ID `13408ba740c16ee62029e515d3c77561`, account ID `207dc3abb767103591a4f197d6a6f6fe` - both looked up live via the Cloudflare API, not guessed).
+   - **Cloudflare Tunnel credentialing:** automated via a scoped API token (`Zone:DNS:Edit` + `Account:Cloudflare Tunnel:Edit`), stored as `CLOUDFLARE_API_TOKEN` in the project's SOPS secrets file, rather than a manually-created tunnel token pasted in by the user each cycle.
+     A tunnel named `kind-talos-idp` already existed in the account (created 2026-07-10, `remote_config: true`) when this was picked up - the bootstrap task adopts it by name rather than creating a second one.
+     `remote_config: true` means cloudflared runs in **token mode** (`cloudflared tunnel run --token ...`), which pulls its ingress rules from Cloudflare's control plane via API, not from a locally mounted config file - this is a structural property of how the tunnel object was created (dashboard/API `cfd_tunnel` resource), not a choice made here; switching to locally-managed config would mean re-provisioning the tunnel with a `credentials.json`, which was judged not worth fighting the existing resource for.
+     **Accepted gap:** this makes the Cloudflare Tunnel the one piece of the turnkey payload whose live-enforced configuration is not a Flux-reconciled Kubernetes object - the desired ingress rules still live in Git (`clusters/workload/infrastructure/cloudflare-tunnel/ingress.yaml`), but an idempotent bootstrap task pushes them to Cloudflare's API rather than Flux reconciling them continuously from the cluster. Documented in `clusters/workload/README.md`'s "Known limitations" alongside the other two accepted Phase 2 gaps.
+   - **Dex connector:** GitHub OAuth (`clientID`/`clientSecret` via Dex's built-in `$ENV_VAR` expansion in connector config, on by default in Dex's `expand_env` feature flag - verified against the `dexidp/dex` source, not assumed). OAuth App registered by the user at github.com/settings/developers with callback `https://idp.x45.dev/callback`; client ID/secret stored as `GITHUB_OAUTH_CLIENT_ID`/`GITHUB_OAUTH_CLIENT_SECRET` in the same SOPS file.
+     **Accepted gap:** no GitHub org/team restriction (`orgs:` connector field) is configured - any GitHub account can authenticate. Acceptable for a single-user local ephemeral IDP; revisit if this ever serves more than one person.
 
 **Open:**
 

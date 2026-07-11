@@ -1,0 +1,24 @@
+# Dex's own serving certificate, issued from the local Root CA (cert-manager/configs/
+# ca-clusterissuer.yaml) - the first real consumer of local-ca, proving the chain
+# works end-to-end rather than leaving it issued-but-unused. Shorter-lived than the
+# root (90d vs the root's 10y): a leaf cert should rotate; the ephemeral cluster's
+# lifetime is what makes the root's long duration safe, not a reason to extend this one.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dex-tls
+  namespace: dex
+spec:
+  secretName: dex-tls
+  commonName: idp.x45.dev
+  dnsNames:
+    - idp.x45.dev
+    - dex.dex.svc.cluster.local
+  duration: 2160h # 90d
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: local-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
