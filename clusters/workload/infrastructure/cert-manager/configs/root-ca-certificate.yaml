@@ -1,0 +1,21 @@
+# The local Root CA. Signed by the selfsigned ClusterIssuer, stored as a TLS secret in
+# the cert-manager namespace (where the CA ClusterIssuer below reads it from - a
+# ClusterIssuer's ca.secretName is resolved in the cert-manager controller namespace,
+# not per-workload namespace).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: kind-talos-gitops local root CA
+  secretName: root-ca-secret
+  duration: 87600h # 10y - ephemeral clusters are short-lived; a long CA lifetime avoids mid-cycle renewal churn
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+    group: cert-manager.io

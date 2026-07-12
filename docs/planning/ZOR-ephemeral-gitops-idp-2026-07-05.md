@@ -1,10 +1,14 @@
 ---
 id: ZOR-ephemeral-gitops-idp-2026-07-05
 title: Zoom-out report - Ephemeral GitOps IDP (Local Edition)
-status: draft
-version: 0.1.0
-date: 2026-07-05
+status: archived
+version: 0.1.1
+date: 2026-07-12
 ---
+
+**Superseded (2026-07-06) by `ZOR-ephemeral-gitops-idp-2026-07-06.md`** - kept for the historical
+record of the original review, not as current guidance. See the root README for the substrate
+re-frame that superseded it.
 
 # Zoom-out report - Ephemeral GitOps IDP
 

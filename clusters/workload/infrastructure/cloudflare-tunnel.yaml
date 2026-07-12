@@ -1,0 +1,33 @@
+# Flux Kustomization CR for the Cloudflare Tunnel connector (cloudflared). Single
+# Kustomization, same reasoning as dex.yaml - no CRDs of its own, only consumes the
+# tunnel-token Secret injected pre-Flux (test-talos-spike:cloudflare-tunnel-bootstrap).
+#
+# dependsOn: dex, not cert-manager-configs (doubt-driven-development finding,
+# 2026-07-11: an earlier draft depended directly on cert-manager-configs, which had no
+# basis in this component - cloudflared has no cert-manager relationship at all). The
+# real dependency is that this tunnel's ingress.yaml routes idp.x45.dev to Dex's
+# in-cluster Service - the tunnel coming up before Dex exists just means transient 502s
+# until Dex is Ready, not a hard failure, but there is no reason to accept that when
+# dex is already gated on cert-manager-configs itself, so depending on dex transitively
+# covers both real prerequisites with one accurate edge instead of one accurate and one
+# copy-pasted.
+#
+# NOT listed in infrastructure/kustomization.yaml's resources directly - only this file
+# is. See cert-manager.yaml's header comment for why (double-reconcile avoidance).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cloudflare-tunnel
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./clusters/workload/infrastructure/cloudflare-tunnel
+  prune: true
+  wait: true
+  timeout: 5m
+  dependsOn:
+    - name: dex
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

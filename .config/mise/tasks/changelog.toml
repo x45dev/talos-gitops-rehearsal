@@ -1,0 +1,10 @@
+# FILE: .config/mise/tasks/changelog.toml
+#
+# DESCRIPTION:
+# Regenerates docs/CHANGELOG.md from the full Conventional Commits git history via git-cliff
+# (config: .config/cliff.toml). docs/CHANGELOG.md is auto-generated - never hand-edit it;
+# re-run this task instead.
+
+[changelog]
+description = "Docs: Regenerate docs/CHANGELOG.md from git history via git-cliff."
+run = "git-cliff --config .config/cliff.toml --output docs/CHANGELOG.md"

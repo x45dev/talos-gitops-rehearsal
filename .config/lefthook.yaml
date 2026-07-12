@@ -45,3 +45,16 @@ pre-commit:
     # 🔑 VALIDATE: Confirm the active key can encrypt/decrypt files seamlessly
     sops-integrity-check:
       run: mise run sops:project:test-config
+
+#
+# HOOK: commit-msg
+#
+# DESCRIPTION:
+# Enforces Conventional Commits format so docs/CHANGELOG.md (git-cliff, see
+# .config/cliff.toml) buckets every future commit correctly instead of falling
+# through to a generic catch-all group.
+#
+commit-msg:
+  commands:
+    conventional-commit-lint:
+      run: mise run lint:commit-msg -- {1}

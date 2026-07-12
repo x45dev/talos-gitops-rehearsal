@@ -38,6 +38,14 @@ protect_breaking_commits = false
 commit_parsers = [
   { message = "(?i)^merge", skip = true },
   { message = "^chore\\(release\\)", skip = true },
+  # A handful of early commits (predating this cliff.toml) were authored by the no-mistakes
+  # pipeline, which prefixes with "no-mistakes(<step>): " instead of a Conventional Commits
+  # type - those commits are already merged to main, so rewriting their history was out of
+  # scope (would require force-pushing main). Route them by the real type nested after the
+  # prefix, when present, before falling through to the generic rules below.
+  { message = "^no-mistakes\\([^)]*\\):\\s*fix", group = "Fixed" },
+  { message = "^no-mistakes\\([^)]*\\):\\s*docs?", group = "Changed" },
+  { message = "^no-mistakes", group = "Changed" },
   { message = "^feat", group = "Added" },
   { message = "^add", group = "Added" },
   { message = "^fix", group = "Fixed" },
@@ -46,6 +54,7 @@ commit_parsers = [
   { message = "^change", group = "Changed" },
   { message = "^style", group = "Changed" },
   { message = "^docs?", group = "Changed" },
+  { message = "^test", group = "Changed" },
   { message = "^remove", group = "Removed" },
   { message = "^revert", group = "Removed" },
   { message = "^deprecate", group = "Deprecated" },

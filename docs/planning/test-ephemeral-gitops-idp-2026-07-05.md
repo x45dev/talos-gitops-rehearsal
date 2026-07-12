@@ -1,4 +1,18 @@
+---
+id: test-ephemeral-gitops-idp-2026-07-05
+title: Cheap spike test - Cilium + CAPD + Talos integration
+status: archived
+version: 1.0.0
+date: 2026-07-06
+---
+
 # 🔬 Cheap Spike Test: Cilium + CAPD + Talos Integration
+
+**Archived (2026-07-06):** this spike's CAPD+Talos approach was superseded during Phase 0 - see
+`ADR-capd-talos-bootstrap-incompatibility-2026-07-06.md` for why CAPD was dropped in favor of
+`talosctl cluster create` directly, and `PLAN-ephemeral-gitops-idp-2026-07-05.md`'s Phase 0 status
+for how the spike's findings were carried forward.
+Kept for the historical record of the original test plan, not as current guidance.
 
 Given your established familiarity with orchestrating Kubernetes, Talos, and Cilium, this test bypasses the Flux, `mise`, and SOPS layers entirely. It isolates the single point of failure: **Will Cilium's eBPF requirements play nicely with Talos nodes running inside CAPD Docker containers on your Ubuntu host?**
 

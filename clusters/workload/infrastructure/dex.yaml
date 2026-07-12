@@ -1,0 +1,25 @@
+# Flux Kustomization CR for Dex. A single Kustomization (not a controllers/configs
+# split like cert-manager) because Dex introduces no CRDs of its own for another
+# resource to consume - it only *consumes* cert-manager's local-ca ClusterIssuer via
+# its Certificate, hence the dependsOn below.
+#
+# NOT listed in infrastructure/kustomization.yaml's resources - only this file is (via
+# infrastructure/kustomization.yaml's `dex.yaml` entry). Listing ./dex there too would
+# double-reconcile it; see cert-manager.yaml's header comment for the same pattern.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: dex
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./clusters/workload/infrastructure/dex
+  prune: true
+  wait: true
+  timeout: 5m
+  dependsOn:
+    - name: cert-manager-configs
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

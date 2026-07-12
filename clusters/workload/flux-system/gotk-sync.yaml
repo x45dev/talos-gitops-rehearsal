@@ -29,8 +29,20 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
+  retryInterval: 1m
   path: ./clusters/workload
   prune: true
+  # wait: true is load-bearing, not decorative (doubt-driven-development finding,
+  # 2026-07-11): without it, this Kustomization reports Ready as soon as `kubectl
+  # apply` of its own manifests succeeds - which includes the child Kustomization CRs
+  # (cert-manager-controllers/-configs, dex, cloudflare-tunnel) as *applied objects*,
+  # not as *reconciled*. Flux only performs the kstatus readiness wait that makes
+  # `kubectl wait --for=condition=ready kustomization/flux-system` mean anything for
+  # those children when wait: true is set here too. Without this, test-talos-spike:
+  # flux-bootstrap's closing wait could report success while Dex or the Cloudflare
+  # Tunnel were still stuck or failing underneath it.
+  wait: true
+  timeout: 15m
   sourceRef:
     kind: GitRepository
     name: flux-system

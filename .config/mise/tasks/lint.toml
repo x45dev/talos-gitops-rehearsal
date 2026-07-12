@@ -43,14 +43,55 @@ sources = ["**/*.md", ".config/vale/**"]
 ["lint:shellcheck"]
 description = "Linter: Statically analyze shell scripts with shellcheck."
 hide = true
-run = "shellcheck $(find . -type f -name \"*.sh\")"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+found="$(find . -type f -name "*.sh" -not -path "*/.git/*")"
+if [ -z "$found" ]; then
+  echo "No .sh files found, skipping shellcheck."
+  exit 0
+fi
+mapfile -t sh_files <<< "$found"
+shellcheck "${sh_files[@]}"
+'''
 sources = ["**/*.sh"]
 
 ["lint:shfmt"]
-description = "Linter: Check shell script formatting with shfmt."
+description = "Linter: Check shell script formatting with shfmt (-w autofixes in place)."
 hide = true
-run = "shfmt -w -i 2 -ci -sr ."  # -w autofixes; use -d to error with a diff instead.
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+found="$(find . -type f \( -name "*.sh" -o -path "./.config/mise/bin/*" \) -not -path "*/.git/*" -not -name "*.md")"
+if [ -z "$found" ]; then
+  echo "No shell scripts found, skipping shfmt."
+  exit 0
+fi
+mapfile -t targets <<< "$found"
+shfmt -w -i 2 -ci -sr "${targets[@]}"
+'''
 sources = ["**/*.sh", ".config/mise/bin/*"]
+
+["lint:commit-msg"]
+description = "Linter: Enforce Conventional Commits format on commit messages (commit-msg hook, not part of the pre-commit `lint` aggregate)."
+hide = true
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+msg_file="$1"
+subject="$(head -1 "$msg_file")"
+pattern='^(feat|fix|docs?|style|refactor|perf|test|chore|build|ci|revert|add|change|remove|deprecate)(\([a-z0-9./_+-]+\))?!?: .+'
+if [[ "$subject" =~ ^Merge ]] || [[ "$subject" =~ ^Revert\ \" ]]; then
+  exit 0
+fi
+if ! [[ "$subject" =~ $pattern ]]; then
+  echo "ERROR: Commit subject doesn't follow Conventional Commits format." >&2
+  echo "   Got:      $subject" >&2
+  echo "   Expected: <type>[(scope)][!]: <subject>, e.g. \"fix(dex): correct issuer URL\"" >&2
+  echo "   Types: feat, fix, docs, style, refactor, perf, test, chore, build, ci, revert, add, change, remove, deprecate" >&2
+  exit 1
+fi
+'''
 
 ["lint:frontmatter"]
 description = "Linter: Validate frontmatter in knowledge/ markdown documents (RFC-003 section 3)."
@@ -69,4 +110,7 @@ sources = ["knowledge/**/*.md"]
 [lint]
 description = "Run all project linters in parallel."
 alias = "l"
-depends = ["lint:shfmt", "lint:shellcheck", "lint:links", "lint:vale", "lint:frontmatter", "backend:lint", "frontend:lint"]
+# backend:lint/frontend:lint were removed (2026-07-12): dead references to tasks that don't
+# exist in this repo (there is no backend/frontend app code here, only infra), which broke
+# every `mise run lint` invocation unconditionally.
+depends = ["lint:shfmt", "lint:shellcheck", "lint:links", "lint:vale", "lint:frontmatter"]

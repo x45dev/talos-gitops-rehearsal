@@ -1,0 +1,28 @@
+# Cloudflare Tunnel ingress rules - NOT reconciled by Flux/Kustomize (deliberately
+# absent from kustomization.yaml in this directory). Read directly by the imperative
+# test-talos-spike:cloudflare-tunnel-bootstrap task, which pushes it to Cloudflare's
+# API (PUT /accounts/{account_id}/cfd_tunnel/{id}/configurations) idempotently on every
+# bootstrap run - this is the one piece of the turnkey payload whose live enforcement
+# point is Cloudflare's control plane, not this cluster. See the plan's Phase 3
+# decisions section and clusters/workload/README.md's "Known limitations" for why
+# (remote_config: true is a structural property of how this tunnel was created, not a
+# choice made here). Git is still the source of truth for the *desired* rules; this
+# file is that source, just applied by a script instead of a Flux reconcile loop.
+#
+# The push is an unconditional PUT (full replace), not a diff-then-patch - deliberately,
+# so this file is the sole source of truth. The real cost of that choice: any ingress
+# rule added directly via the Cloudflare dashboard/API between bootstrap runs (e.g.
+# while live-debugging) is silently discarded on the next run, with no warning. Accepted
+# for a single-developer local IDP; if this ever needs ad hoc dashboard changes to
+# survive, that is a sign this file has stopped being the actual source of truth and
+# needs reconciling first.
+ingress:
+  - hostname: idp.x45.dev
+    service: https://dex.dex.svc.cluster.local:5554
+    originRequest:
+      # The tunnel's origin hop never leaves the cluster's pod network - verifying
+      # against Dex's local-ca-issued cert buys little here (no untrusted network
+      # segment crossed) for the cost of also mounting the CA bundle into cloudflared.
+      # Revisit if this tunnel ever fronts more than a single-user local dev cluster.
+      noTLSVerify: true
+  - service: http_status:404
