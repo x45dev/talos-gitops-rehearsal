@@ -14,7 +14,6 @@ date: 2026-07-06
 for how the spike's findings were carried forward.
 Kept for the historical record of the original test plan, not as current guidance.
 
-
 Given your established familiarity with orchestrating Kubernetes, Talos, and Cilium, this test bypasses the Flux, `mise`, and SOPS layers entirely. It isolates the single point of failure: **Will Cilium's eBPF requirements play nicely with Talos nodes running inside CAPD Docker containers on your Ubuntu host?**
 
 **Objective:** Provision a CAPD cluster using Talos, install Cilium (without kube-proxy), and verify L4 routing and pod-to-pod communication.
