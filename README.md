@@ -28,7 +28,9 @@ See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requiremen
 │   └── cliff.toml      # git-cliff changelog generation config
 ├── clusters/workload/  # Flux-reconciled turnkey payload (CAPI-consumability contract in its README)
 │   ├── flux-system/    # Flux controllers + GitRepository/Kustomization source-and-sync objects
-│   └── infrastructure/cilium/  # Cilium HelmRelease, adopting the bootstrap task's imperative install
+│   └── infrastructure/
+│       ├── cilium/       # Cilium HelmRelease, adopting the bootstrap task's imperative install
+│       └── cert-manager/ # cert-manager HelmRelease + local Root CA issuer chain (controllers/, configs/)
 ├── docs/
 │   └── planning/       # PRD, plan, ADRs, and zoom-out reviews for this project
 └── docs/LICENSE
