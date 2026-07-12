@@ -59,6 +59,7 @@ includes = [
 age = "latest"
 bats = "latest"
 flux2 = "2.9.0"  # pinned, not "latest" - Flux's Cilium-adoption reconcile behavior (plan Phase 2 step 5) is version-dependent
+"git-cliff" = "latest"
 hadolint = "latest"
 helm = "latest"
 jq = "latest"
