@@ -2,8 +2,8 @@
 id: PLAN-ephemeral-gitops-idp
 title: Implementation plan - Ephemeral GitOps IDP (Local Edition)
 status: draft
-version: 0.8.0
-date: 2026-07-11
+version: 0.9.0
+date: 2026-07-12
 ---
 
 # Implementation plan - Ephemeral GitOps IDP
@@ -122,9 +122,8 @@ All three gates green on every completed pass; `GitRepository`/`Kustomization` b
 
 ## Phase 3 - Turnkey payload
 
-**Status: in progress (2026-07-11).** cert-manager (+ local Root CA `ClusterIssuer`) is built, build-validated, and passed a doubt-driven-development review.
-The three external-input decisions blocking Dex and Cloudflare Tunnel (domain, tunnel credentialing, Dex connector) are now closed - see Decisions below - and both components are being built against them.
-Still **not yet live-verified** against an ephemeral cluster; the full-payload live run remains the Phase 3 exit gate.
+**Status: done, live-verified (2026-07-12).** cert-manager (+ local Root CA `ClusterIssuer`), Dex (GitHub OIDC), and Cloudflare Tunnel are all built, build-validated, doubt-driven-development reviewed, and live-verified end-to-end against an ephemeral cluster.
+The three external-input decisions blocking Dex and Cloudflare Tunnel (domain, tunnel credentialing, Dex connector) are closed - see Decisions below.
 
 Build the target-cluster self-configuration as Flux `HelmRelease`/`Kustomization` objects under `clusters/workload/`:
 
@@ -135,7 +134,7 @@ Build the target-cluster self-configuration as Flux `HelmRelease`/`Kustomization
 
 Sequence these behind Flux `dependsOn` so Cilium and cert-manager settle before Dex and the tunnel.
 
-**Exit criteria:** every payload `HelmRelease`/`Kustomization` reports `Ready`; cert-manager issues a certificate from the local Root CA `ClusterIssuer`; Dex serves its OIDC discovery document; the Cloudflare Tunnel reports a live connection (or an end-to-end request through it reaches an in-cluster service); and every SOPS-encrypted secret in the payload decrypts (zero `Kustomization` decryption failures).
+**Exit criteria (met, 2026-07-12):** every payload `HelmRelease`/`Kustomization` reports `Ready`; cert-manager issues a certificate from the local Root CA `ClusterIssuer`; Dex serves its OIDC discovery document; the Cloudflare Tunnel reports a live connection (or an end-to-end request through it reaches an in-cluster service); and every SOPS-encrypted secret in the payload decrypts (zero `Kustomization` decryption failures). See "Live verification evidence" below.
 
 ### cert-manager - built (2026-07-07)
 
@@ -144,6 +143,19 @@ Files: `clusters/workload/infrastructure/cert-manager.yaml` (two Flux `Kustomiza
 **Layering decision - this is the repo's first per-component Flux `Kustomization`.** Cilium is reconciled directly by the root `flux-system` `Kustomization`; cert-manager could not follow that flat model because its `ClusterIssuer`/`Certificate` custom resources cannot be applied until the cert-manager CRDs exist and the webhook is serving - an ordering a single flat `Kustomization` cannot express. So cert-manager splits into a `controllers` layer and a `configs` layer (the standard upstream Flux pattern for a CRD-provider plus its custom resources), with `cert-manager-configs` `dependsOn` `cert-manager-controllers`. The `controllers`/`configs` subdirs are reconciled only via those CRs' `spec.path`; `infrastructure/kustomization.yaml` lists `cert-manager.yaml` (the CRs) but not the subdirs, so nothing is double-reconciled. Cilium was deliberately left untouched (no churn to its Phase 2 adoption wiring); the mixed model - one component at root, one behind sub-`Kustomization`s - is accepted, with the sub-`Kustomization` pattern documented for any future CRD-provider component.
 
 **The webhook-ordering gate rests on helm-controller's default resource-wait, not on `wait: true` alone** (doubt-driven-development finding, 2026-07-07). `cert-manager-controllers` has `wait: true`, which waits for the `HelmRelease` to report `Ready`; the `HelmRelease` only reports `Ready` after the cert-manager Deployments (including the webhook) are rolled out *because* helm-controller's `spec.install.disableWait` defaults to `false` (poller WaitStrategy). Verified against the shipped `helmreleases` CRD, not assumed. The doubt reviewer's premise ("helm-controller doesn't `--wait` by default") is true for the raw `helm` CLI but false for Flux helm-controller; the manifest logic was correct, and the actionable residue was a comment that over-attributed the guarantee to the `Kustomization`'s `wait: true` - now corrected in `cert-manager.yaml` with an explicit warning not to set `disableWait: true` without adding a webhook `healthCheck`. **Trade-off accepted:** the gate relies on the version-agnostic default wait rather than a `spec.healthChecks` entry keyed to the (chart-version-dependent) `cert-manager-webhook` Deployment name; the residual post-rollout webhook race is absorbed by `retryInterval: 1m`.
+
+### Dex + Cloudflare Tunnel - built (2026-07-11), live-verified (2026-07-12)
+
+Files: `clusters/workload/infrastructure/dex/` (Dex `HelmRelease`, chart `dexidp/dex@0.24.1`, GitHub OIDC connector, TLS terminated with a `local-ca`-issued `dex-tls` certificate) and `clusters/workload/infrastructure/cloudflare-tunnel/` (`cloudflared` `Deployment`, token-mode/remote-managed tunnel). Both flat single-`Kustomization` components; `dex` `dependsOn` `cert-manager-configs`, `cloudflare-tunnel` `dependsOn` `dex`.
+
+**doubt-driven-development review (2026-07-11):** one cycle, 16 findings - 9 valid and fixed (`wait: true` added to the root `Kustomization`, since without it the root reports Ready as soon as its own manifests apply rather than waiting for the child Kustomizations to actually reconcile; `cloudflare-tunnel` `dependsOn` corrected from an unjustified `cert-manager-configs` to `dex`; resource requests/limits added to the `cloudflared` `Deployment`; among others), 4 valid trade-offs documented in `clusters/workload/README.md`'s "Known limitations" (Cloudflare Tunnel ingress not Flux-reconciled; `noTLSVerify` on the tunnel-to-Dex hop; no GitHub org/team restriction on Dex's connector), 3 reclassified as noise after verifying the `dexidp/dex` chart's actual templates (`helm pull --untar`, not just `helm show values`) rather than assuming.
+
+**Live verification evidence:** ran `test-talos-spike:flux-bootstrap` + `verify-adoption` + `verify-phase3` against a fresh ephemeral cluster. Surfaced and fixed two workflow bugs unrelated to the manifests themselves, both root-caused via five-whys before the fix:
+one is that `mise run task1 task2 task3` silently drops every task after the first unless the tasks are separated with `:::`, which meant two earlier verification attempts silently skipped `verify-adoption`/`verify-phase3` entirely while reporting success (the reported exit code was `flux-bootstrap`'s, not the omitted tasks');
+the other is that this repo's `flux-system` `Kustomization` is self-managing (it reconciles the very directory containing `gotk-sync.yaml`), so any reconcile re-applies that file's *committed* content - meaning a live `kubectl patch` or an uncommitted local edit to `spec.ref.branch` gets silently reverted on the next reconcile interval, which is what caused an earlier destructive prune (Flux fell back to `main`, which lacks the Phase 3 Kustomizations, and pruned them with `prune: true` still set).
+Fixed by committing the scratch-branch override, verifying, then reverting the commit - keeping the fetched Git artifact self-consistent for the verification window instead of fighting the self-managing tree.
+With that fixed, `verify-phase3` passed every exit criterion: `dex` and `cloudflare-tunnel` Kustomizations Ready; `dex-tls` `Certificate` issued from `local-ca`; Cloudflare Tunnel reporting a live/healthy connection; Dex's OIDC discovery document served end-to-end through the tunnel with a matching `issuer`; the GitHub OAuth client ID reaching the Dex pod's environment via the SOPS-encrypted secret injection; zero SOPS decryption failures across all Kustomizations.
+Cluster torn down cleanly afterward (zero residue confirmed).
 
 ## Phase 4 - Lifecycle, idempotency, and metrics
 
@@ -201,5 +213,5 @@ Deliberately unscheduled; triggered by a real CAPA/cloud deployment getting plan
 
 ## Immediate next action
 
-Phase 0, Phase 1, and Phase 2 are done (green, 2026-07-07 - see status above).
-Next: Phase 3, the turnkey payload.
+Phase 0 through Phase 3 are done (green, Phase 3 live-verified 2026-07-12 - see status above).
+Next: Phase 4, lifecycle/idempotency/metrics hardening - no work has started on it yet.
