@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **phase2:** Stand up clusters/workload GitOps structure, Flux bootstrap wiring
 - **phase3:** Cert-manager + local Root CA issuer as first per-component Flux layering
 - **phase3:** Dex (GitHub OIDC) + Cloudflare Tunnel turnkey payload
+- **changelog:** Wire git-cliff automated changelog generation
 
 ### Changed
 
@@ -25,9 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **document:** Remove dead hadolint/devcontainer references from lint task, hook, README
 - **phase2:** Close out Phase 2 in the plan and PRD
 - **document:** Fixed one doc gap: PRD 3.1 didn't mention the git-credentials deploy-key secret injection now part of the bootstrap flow; everything else (README, clusters/workload/README, plan, task file) was already in sync.
-- **document:** Doc: add cert-manager to root README project-structure tree
+- Add cert-manager to root README project-structure tree
 - **phase3:** Temporarily point GitRepository at scratch branch for live verification
 - Revert "test(phase3): temporarily point GitRepository at scratch branch for live verification"
+- **plan:** Mark Phase 3 done and live-verified
+- **planning:** Fix RKA frontmatter conformance gaps
 
 ### Fixed
 
