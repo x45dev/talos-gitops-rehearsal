@@ -17,7 +17,7 @@ metadata:
 spec:
   interval: 1m
   ref:
-    branch: main
+    branch: worktree-phase3+turnkey-payload
   secretRef:
     name: git-credentials
   url: ssh://git@github.com/x45dev/kind-talos-gitops.git
