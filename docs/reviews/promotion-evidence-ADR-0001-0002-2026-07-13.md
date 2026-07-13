@@ -84,3 +84,17 @@ tweak while ADR-0002 is promoted; ADR-0002 is the cleaner of the two.
 
 **Until that recorded human decision, both remain `active`.** The agent does not set
 `canonical`.
+
+## Outcome (recorded 2026-07-13)
+
+**Decision: promote both ADR-0001 and ADR-0002 to `canonical`.** Made by the human (the
+non-author reviewer, RFC-002 section 4 criterion 2) on review of the evidence above, and
+recorded by the agent as scribe in the same change that set `status: canonical` on both
+documents (`version` -> 1.0.0). The two recorded caveats stand: the promotion rests on the
+committed artefacts and the ADRs' own documented live probes, not a fresh runtime
+re-execution, and ADR-0001's "stays CAPI-shaped (`clusters/management/`, ...)" phrasing is a
+known minor overstatement (`clusters/management/` is unmaterialised, consistent with
+"unpopulated"). Neither caveat was judged to block the authority grant.
+
+This is the first document(s) in the RKA ecosystem to complete the full
+`draft -> active -> canonical` lifecycle through the evidence-backed gate.
