@@ -3,31 +3,23 @@
 # agent/dev sessions on a second host - the Tailscale-joined VPS - against the
 # same toolchain the laptop uses).
 #
-# Compose (not a bare image) so talosctl's Docker provisioner has what it needs:
-# a Docker daemon (host socket, below) and L2 access to the docker bridge.
+# This DEFAULT service is a plain, sandboxed dev container: no Docker access, no
+# host networking. It is what runs on the VPS for unattended agent sessions, so
+# it deliberately holds no path to the host. Editing, linting, committing, and
+# SOPS-decrypting all work here; running the Talos cluster does not (by design).
+#
+# To run the cluster (talosctl's Docker provisioner) you must OPT IN with the
+# cluster overlay, and only on a host you actually run clusters on (the laptop):
+#   docker compose -f compose.yaml -f compose.cluster.yaml up -d
+# That overlay grants Docker-socket access, which is host-root-equivalent - see
+# compose.cluster.yaml and ADR-0006 for why it is kept out of the default.
 services:
   dev:
     build:
       context: .
       dockerfile: Dockerfile
-
-    # The container's MAIN process runs as root only so the entry command can
-    # align the mounted docker socket's group to the host's (that gid varies per
-    # host, so it cannot be baked into the image). Interactive work, exec, and
-    # postCreate all run as the non-root `dev` user (devcontainer.json
-    # remoteUser; `docker exec -u dev`). File writes therefore happen as
-    # uid 1000 = the host `dev`, which the cloud-init uid pin guarantees.
-    user: root
-
-    # Host networking: talosctl's docker provisioner creates the Talos node
-    # containers on the host's docker bridge, and Cilium advertises the
-    # LoadBalancer IP by ARP on that same bridge L2 (the workload's
-    # test-talos-spike task notes "the host sits on that same L2"). With host
-    # networking the container shares exactly that namespace, so kubectl/talosctl
-    # inside it reach the API server and the LB IP the way the bare host would.
-    # A bridged container network would not see either.
-    network_mode: host
-
+    # Runs as the image's non-root `dev` (uid 1000 = the host account, guaranteed
+    # by the VPS cloud-init uid pin), so bind-mounted files line up.
     volumes:
       # The project itself, live.
       - ..:/workspaces/kind-talos-gitops:cached
@@ -36,29 +28,6 @@ services:
       - ${HOME}/Documents/Dev/agent-standards:/home/dev/Documents/Dev/agent-standards:ro
       # The AGE private key for in-container SOPS decryption; never baked in.
       - ${HOME}/.config/sops/age/keys.txt:/home/dev/.config/sops/age/keys.txt:ro
-      # docker-outside-of-docker: talosctl and the repo's docker tasks drive the
-      # HOST daemon through its socket. Talos node containers are created as
-      # siblings on the host, NOT nested inside this container. The cluster's RAM
-      # footprint is therefore the host's - a ~6GB 3-node cluster does not fit a
-      # 4GB VPS, so cluster-run stays a laptop task (ADR-0006); editing, linting,
-      # and agent sessions are what run here.
-      - /var/run/docker.sock:/var/run/docker.sock
-
-    # dumb-init (image entrypoint) stays PID 1. As root: create/adopt a group
-    # matching the socket's gid and add `dev` to it, so `docker exec -u dev` can
-    # reach the daemon; then hand off to sleep so the container persists for
-    # exec'd zellij/Claude sessions.
-    command:
-      - bash
-      - -lc
-      # NB: shell $ must be doubled ($$) so docker compose does not interpolate
-      # it - single-$ here would reach bash empty and break the group setup.
-      - |
-        set -e
-        if [ -S /var/run/docker.sock ]; then
-          sgid="$$(stat -c %g /var/run/docker.sock)"
-          getent group "$$sgid" >/dev/null || groupadd -g "$$sgid" hostdocker
-          grp="$$(getent group "$$sgid" | cut -d: -f1)"
-          usermod -aG "$$grp" dev
-        fi
-        exec sleep infinity
+    # dumb-init (image entrypoint) stays PID 1; sleep keeps the container up so
+    # you exec in and run a zellij/Claude session over Tailscale.
+    command: ["sleep", "infinity"]

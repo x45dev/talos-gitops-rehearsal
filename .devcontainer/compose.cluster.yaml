@@ -1,0 +1,43 @@
+# OPT-IN cluster overlay for kind-talos-gitops (ADR-0006).
+#
+# Layer this on top of compose.yaml ONLY on a host you actually run the Talos
+# cluster on (the laptop), never on an unattended agent host like the VPS:
+#   docker compose -f compose.yaml -f compose.cluster.yaml up -d
+#
+# It grants the container what talosctl's Docker provisioner needs:
+#   - the host Docker socket (docker-outside-of-docker), and
+#   - host networking, so the container sits on the docker-bridge L2 that
+#     talosctl and Cilium's ARP-advertised LoadBalancer assume.
+#
+# SECURITY: Docker-socket access is equivalent to host root (a container can
+# bind-mount `/` and chroot). That is acceptable when a human is driving a
+# cluster on their own laptop; it is NOT acceptable for an unattended
+# Claude-Code session, which is why the default compose.yaml has none of this
+# and this capability is a separate, explicit opt-in. Do not merge this overlay
+# into the default.
+services:
+  dev:
+    # Root only so the entry command can align a container group to the mounted
+    # socket's gid (that gid varies per host, so it cannot be baked into the
+    # image). Interactive work, exec, and postCreate still run as `dev`.
+    user: root
+    network_mode: host
+    volumes:
+      # docker-outside-of-docker: talosctl and the repo's docker tasks drive the
+      # HOST daemon. Talos node containers are created as siblings on the host.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # Adopt/create a group matching the socket's gid, add `dev` to it so
+    # `docker exec -u dev` can reach the daemon, then hand off to sleep.
+    # NB: shell $ must be doubled ($$) so docker compose does not interpolate it.
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        if [ -S /var/run/docker.sock ]; then
+          sgid="$$(stat -c %g /var/run/docker.sock)"
+          getent group "$$sgid" >/dev/null || groupadd -g "$$sgid" hostdocker
+          grp="$$(getent group "$$sgid" | cut -d: -f1)"
+          usermod -aG "$$grp" dev
+        fi
+        exec sleep infinity

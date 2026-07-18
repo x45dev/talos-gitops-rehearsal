@@ -49,11 +49,15 @@ application-overlay carry over, the provisioning substrate does not
   Hardware-bound (YubiKey) key is a deferred hardening milestone
   (`docs/planning/PRD.md` Section 3.2).
 - **Task orchestration:** `mise`, host-native on the laptop (ADR-0003).
-  A `.devcontainer/` consuming the shared `devbase` image (via a thin Dockerfile
-  that adds a Docker CLI, host networking, and the host Docker socket) was added
-  for cross-machine dev and agent sessions on a second host, reopening ADR-0003
-  per its own revisit trigger (ADR-0006); the cluster itself still runs on the
-  laptop, since a 4GB second host cannot hold the ~6GB Talos cluster.
+  A `.devcontainer/` consuming the shared `devbase` image (thin Dockerfile that
+  adds a Docker CLI) was added for cross-machine dev and agent sessions on a
+  second host, reopening ADR-0003 per its own revisit trigger (ADR-0006).
+  Its default container is a plain sandbox with no Docker access; the
+  host-root-equivalent Docker socket and host networking that `talosctl` needs
+  live in an opt-in `compose.cluster.yaml` overlay used only on a cluster-run
+  host, so unattended agent sessions on the VPS never hold that access.
+  The cluster itself still runs on the laptop, since a 4GB second host cannot
+  hold the ~6GB Talos cluster.
   Every tool version is pinned in `.config/mise/config.toml`'s `[tools]` table
   (age, bats, flux2, git-cliff, hadolint, helm, jq, kubectl, lefthook, lychee, sops,
   talosctl, vale, yq).
