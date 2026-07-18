@@ -18,6 +18,9 @@ See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requiremen
 
 ```text
 .
+├── .devcontainer/      # Cross-machine dev/agent devcontainer (default: no Docker access;
+│                       # compose.cluster.yaml: opt-in Docker-socket + host-networking overlay
+│                       # for cluster-run hosts - see ADR-0006)
 ├── .config/
 │   ├── mise/          # Task orchestration and tool versioning (mise)
 │   ├── sops/           # SOPS/AGE project secrets (age keypair, config)
@@ -57,6 +60,19 @@ mise run app:start         # Start the app via Docker Compose
 ```
 
 The full bootstrap chain is defined under `test-talos-spike:*` (see `.config/mise/tasks/test-talos-spike.toml`); run `mise run test-talos-spike:all` to provision a cluster, install Cilium, bootstrap Flux to reconcile `clusters/workload/` from Git (adopting the Cilium release in place), and drive all three verification gates (Cilium/eBPF compatibility, cross-node pod connectivity, LoadBalancer IP allocation and reachability), or `mise run test-talos-spike:teardown` to tear it back down.
+
+### Devcontainer (cross-machine dev/agent sessions)
+
+`.devcontainer/` gives a second host (e.g. a Tailscale-joined VPS) the same
+`mise`-managed toolchain as the laptop, for editing, linting, committing, and
+unattended agent sessions - the laptop's host-native workflow above remains the
+default for local work.
+Its default `compose.yaml` service holds no Docker socket and no host
+networking, so it has no path to the host.
+Only on a host that actually runs the Talos cluster (the laptop) layer the
+opt-in overlay to grant `talosctl` what it needs:
+`docker compose -f compose.yaml -f compose.cluster.yaml up -d`.
+See ADR-0006 for the full rationale and the security split behind it.
 
 ## Quality Standards
 

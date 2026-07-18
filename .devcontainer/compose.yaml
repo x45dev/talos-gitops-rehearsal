@@ -1,0 +1,33 @@
+# Devcontainer for kind-talos-gitops (see ADR-0006, which reopens ADR-0003's
+# "no devcontainer for v1" now that a concrete cross-machine need exists: running
+# agent/dev sessions on a second host - the Tailscale-joined VPS - against the
+# same toolchain the laptop uses).
+#
+# This DEFAULT service is a plain, sandboxed dev container: no Docker access, no
+# host networking. It is what runs on the VPS for unattended agent sessions, so
+# it deliberately holds no path to the host. Editing, linting, committing, and
+# SOPS-decrypting all work here; running the Talos cluster does not (by design).
+#
+# To run the cluster (talosctl's Docker provisioner) you must OPT IN with the
+# cluster overlay, and only on a host you actually run clusters on (the laptop):
+#   docker compose -f compose.yaml -f compose.cluster.yaml up -d
+# That overlay grants Docker-socket access, which is host-root-equivalent - see
+# compose.cluster.yaml and ADR-0006 for why it is kept out of the default.
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Runs as the image's non-root `dev` (uid 1000 = the host account, guaranteed
+    # by the VPS cloud-init uid pin), so bind-mounted files line up.
+    volumes:
+      # The project itself, live.
+      - ..:/workspaces/kind-talos-gitops:cached
+      # agent-standards, read-only (postCreate points the agent-config symlinks
+      # at it); the same checkout the workstation uses.
+      - ${HOME}/Documents/Dev/agent-standards:/home/dev/Documents/Dev/agent-standards:ro
+      # The AGE private key for in-container SOPS decryption; never baked in.
+      - ${HOME}/.config/sops/age/keys.txt:/home/dev/.config/sops/age/keys.txt:ro
+    # dumb-init (image entrypoint) stays PID 1; sleep keeps the container up so
+    # you exec in and run a zellij/Claude session over Tailscale.
+    command: ["sleep", "infinity"]
