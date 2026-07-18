@@ -82,10 +82,13 @@ These must hold throughout the project, per the cited sources:
   multi-user environment (`docs/planning/PRD.md` header, line 12; corroborated by
   repeated "single-developer local dev tool" framing of accepted security gaps in
   `clusters/workload/README.md` "Known limitations", lines 91-129).
-- **Host-native toolchain, not a devcontainer.** The full toolchain is `mise`-managed;
-  the only Docker requirement is that `talosctl`'s provisioner reach a Docker daemon
-  socket (`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` Phase 1, lines 87-94).
-  See ADR-0003.
+- **Host-native toolchain on the laptop, not a devcontainer.** The full toolchain is
+  `mise`-managed; the only Docker requirement is that `talosctl`'s provisioner reach a
+  Docker daemon socket (`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` Phase 1,
+  lines 87-94). See ADR-0003. A `.devcontainer/` was later added for cross-machine dev
+  and agent sessions on a second host (ADR-0006 reopening ADR-0003); its default
+  container holds no Docker socket, with that host-root-equivalent access confined to
+  an opt-in `compose.cluster.yaml` overlay used only on a cluster-run host.
 - **Cluster topology: 1 control-plane + 2 workers is required, not incidental.** Talos
   control-plane nodes are `NoSchedule`-tainted by default, so a single-worker topology
   would let the cross-node connectivity gate pass vacuously
