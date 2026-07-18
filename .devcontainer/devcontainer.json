@@ -1,0 +1,26 @@
+// Devcontainer for kind-talos-gitops. Reopens ADR-0003's "no devcontainer for
+// v1" per ADR-0006: the concrete cross-machine reproducibility need it named as
+// its revisit trigger (running the toolchain on a second host - the VPS) now
+// exists. Consumes the shared devbase base via compose.yaml + a thin Dockerfile
+// that adds a Docker CLI.
+//
+// The base already carries mise, the toolchain, and Claude Code, so this file
+// only: picks the service, lands as non-root `dev`, and wires the per-project
+// agent-config links + mise tools + lefthook gate.
+{
+  "name": "kind-talos-gitops-dev",
+  "dockerComposeFile": "compose.yaml",
+  "service": "dev",
+  "workspaceFolder": "/workspaces/kind-talos-gitops",
+  "remoteUser": "dev",
+
+  // Point the agent-config symlinks at the mounted agent-standards checkout,
+  // install the project's mise tools, and set up the repo's lefthook gate.
+  "postCreateCommand": "bash -lc 'set -e; std=$HOME/Documents/Dev/agent-standards; ln -sf $std/AGENTS.md $HOME/AGENTS.md; ln -sf $std/OPINIONS.md $HOME/OPINIONS.md; mkdir -p $HOME/.claude/skills; for s in doubt-driven-development five-whys handoff sharpen zoom-out; do ln -sfn $std/.claude/skills/$s $HOME/.claude/skills/$s; done; ln -sf $HOME/AGENTS.md $HOME/.claude/CLAUDE.md; mise trust --yes || true; mise install; command -v lefthook >/dev/null && lefthook install || true'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": []
+    }
+  }
+}

@@ -2,8 +2,8 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: draft
-version: 0.1.0
-date: 2026-07-13
+version: 0.2.0
+date: 2026-07-18
 ---
 
 # Context - Ephemeral GitOps IDP (Local Edition)
@@ -48,8 +48,13 @@ application-overlay carry over, the provisioning substrate does not
   decryption failure (`sops.strict = true`, `.config/mise/config.toml` line 44).
   Hardware-bound (YubiKey) key is a deferred hardening milestone
   (`docs/planning/PRD.md` Section 3.2).
-- **Task orchestration:** `mise`, host-native (no devcontainer - see ADR-0003), with
-  every tool version pinned in `.config/mise/config.toml`'s `[tools]` table
+- **Task orchestration:** `mise`, host-native on the laptop (ADR-0003).
+  A `.devcontainer/` consuming the shared `devbase` image (via a thin Dockerfile
+  that adds a Docker CLI, host networking, and the host Docker socket) was added
+  for cross-machine dev and agent sessions on a second host, reopening ADR-0003
+  per its own revisit trigger (ADR-0006); the cluster itself still runs on the
+  laptop, since a 4GB second host cannot hold the ~6GB Talos cluster.
+  Every tool version is pinned in `.config/mise/config.toml`'s `[tools]` table
   (age, bats, flux2, git-cliff, hadolint, helm, jq, kubectl, lefthook, lychee, sops,
   talosctl, vale, yq).
 - **Git hooks:** Lefthook, running lint and SOPS/secrets-leak guards before every
