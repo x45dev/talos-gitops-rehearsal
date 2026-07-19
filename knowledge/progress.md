@@ -2,8 +2,9 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.0
+version: 0.1.1
 date: 2026-07-19
+type: context
 ---
 
 # Progress
