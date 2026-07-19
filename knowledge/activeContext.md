@@ -2,8 +2,9 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.0
+version: 0.1.1
 date: 2026-07-19
+type: context
 ---
 
 # Active Context

@@ -99,13 +99,23 @@ hide = true
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-if [ -d "knowledge" ] && [ -f "scripts/validate-frontmatter.sh" ]; then
-  scripts/validate-frontmatter.sh
-else
-  echo "⚠️  No knowledge/ directory or scripts/validate-frontmatter.sh, skipping frontmatter lint"
+# Two distinct states, deliberately not conflated (the old guard's conflation made
+# this gate a silent no-op for a week when the script went missing):
+#   1. No knowledge/ directory: nothing is governed here, skipping is legitimate.
+#   2. knowledge/ exists but the validator script is missing: the gate CANNOT run,
+#      and a gate that cannot run must fail loudly, never skip.
+if [ ! -d "knowledge" ]; then
+  echo "No knowledge/ directory, skipping frontmatter lint"
+  exit 0
 fi
+if [ ! -f "scripts/validate-frontmatter.sh" ]; then
+  echo "ERROR: knowledge/ exists but scripts/validate-frontmatter.sh is missing." >&2
+  echo "       The frontmatter gate cannot run; restore the validator (RKA ADR-0012: take it from the tagged rka-template release)." >&2
+  exit 1
+fi
+scripts/validate-frontmatter.sh
 """
-sources = ["knowledge/**/*.md"]
+sources = ["knowledge/**/*.md", "scripts/validate-frontmatter.sh"]
 
 [lint]
 description = "Run all project linters in parallel."

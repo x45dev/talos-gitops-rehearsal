@@ -2,8 +2,9 @@
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
 status: draft
-version: 0.1.0
-date: 2026-07-13
+version: 0.1.1
+date: 2026-07-19
+type: constitution
 ---
 
 # Constitution - Ephemeral GitOps IDP (Local Edition)
