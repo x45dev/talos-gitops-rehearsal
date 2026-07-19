@@ -15,5 +15,21 @@ container_name="${project_name}-dev-1"
 cd "$repo_root/.devcontainer"
 docker compose -p "$project_name" up -d --build
 
+# `postCreateCommand` in devcontainer.json is a devcontainer-spec hook, only
+# ever run by the `devcontainer` CLI / VS Code - `docker compose up` alone
+# never executes it, so the agent-config symlinks and lefthook install would
+# otherwise silently never happen. Extract and run it directly instead of
+# depending on tooling this workflow doesn't use. Re-running is harmless: the
+# symlinks are `ln -sf`, `mise trust`/`install` and `lefthook install` are
+# idempotent. Run with cwd = workspaceFolder, matching what the devcontainer
+# CLI does natively - lefthook (and any future step relying on being inside
+# the repo) needs that, not $HOME.
+devcontainer_json="$repo_root/.devcontainer/devcontainer.json"
+post_create_cmd="$(grep -v '^[[:space:]]*//' "$devcontainer_json" | jq -r '.postCreateCommand // empty')"
+workspace_folder="$(grep -v '^[[:space:]]*//' "$devcontainer_json" | jq -r '.workspaceFolder // empty')"
+if [ -n "$post_create_cmd" ]; then
+  docker exec -w "${workspace_folder:-/}" "$container_name" bash -c "$post_create_cmd"
+fi
+
 echo "Container: $container_name (compose project: $project_name)"
 echo "Attach:    docker exec -it $container_name zellij attach --create claude-<session-name>"
