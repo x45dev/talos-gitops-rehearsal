@@ -28,7 +28,7 @@ devcontainer_json="$repo_root/.devcontainer/devcontainer.json"
 post_create_cmd="$(grep -v '^[[:space:]]*//' "$devcontainer_json" | jq -r '.postCreateCommand // empty')"
 workspace_folder="$(grep -v '^[[:space:]]*//' "$devcontainer_json" | jq -r '.workspaceFolder // empty')"
 if [ -n "$post_create_cmd" ]; then
-    docker exec -w "${workspace_folder:-/}" "$container_name" bash -c "$post_create_cmd"
+  docker exec -w "${workspace_folder:-/}" "$container_name" bash -c "$post_create_cmd"
 fi
 
 echo "Container: $container_name (compose project: $project_name)"
