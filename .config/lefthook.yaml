@@ -42,9 +42,31 @@ pre-commit:
           exit 1
         fi
 
-    # 🔑 VALIDATE: Confirm the active key can encrypt/decrypt files seamlessly
+    # 🔑 VALIDATE: Confirm the active key can encrypt/decrypt files seamlessly.
+    #
+    # FAILS OPEN when the project AGE key is absent. This hook also runs in
+    # environments where that machine-local, gitignored key never exists: CI
+    # runners, a fresh clone before keygen, a contributor who does not hold the
+    # key, and the isolated worktree that `no-mistakes` commits inside for its
+    # `review --action fix` and `document` steps. Hard-failing there makes
+    # committing impossible in that environment while presenting as an unrelated
+    # tool failure (diagnosed 2026-07-20 in repository-knowledge-architecture;
+    # see agent-standards docs/how-to-agents.md, no-mistakes entry).
+    #
+    # The guard lives here on the hook invocation, deliberately NOT inside
+    # `sops:project:check-key`: `manage`, `decrypt`, and `test-config` all
+    # legitimately need that task to fail when the key is missing, since they
+    # cannot do their job without it. When the key IS present, test-config's exit
+    # code propagates normally, so a genuinely broken key configuration still
+    # blocks the commit. The keys-leak-guard above remains the real secret
+    # control and needs no key of its own.
     sops-integrity-check:
-      run: mise run sops:project:test-config
+      run: |
+        if [ -f .config/sops/age/keys.txt ]; then
+          mise run sops:project:test-config
+        else
+          echo "sops-integrity-check: no AGE key at .config/sops/age/keys.txt - skipping (fail-open)"
+        fi
 
 #
 # HOOK: commit-msg
