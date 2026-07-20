@@ -19,6 +19,12 @@ fail_on_error: true
 pre-commit:
   parallel: true
   commands:
+    # 📝 GENERATE: Regenerate docs/CHANGELOG.md from Conventional Commits before
+    # each commit so it is never hand-edited (git-cliff, see .config/cliff.toml).
+    # Mirrors the pattern shipped in rka-template v0.3.0.
+    changelog:
+      run: mise run changelog && git add docs/CHANGELOG.md
+
     lint:
       run: mise run lint
 
