@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **knowledge:** Add working-state pair from 2026-07-19 ecosystem review
 - **specs:** Add governance-parity spec-kit plan
 - **changelog:** Regenerate docs/CHANGELOG.md automatically at pre-commit
+- **docs:** Apply markdownlint auto-fixes left unstaged by the lint hook
 
 ### Fixed
 
