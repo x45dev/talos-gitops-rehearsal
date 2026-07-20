@@ -19,23 +19,19 @@ fail_on_error: true
 pre-commit:
   parallel: true
   commands:
-    # 📝 GENERATE: Regenerate docs/CHANGELOG.md from Conventional Commits before
-    # each commit so it is never hand-edited (git-cliff, see .config/cliff.toml).
-    # Mirrors the pattern shipped in rka-template v0.3.0.
-    # priority: 1 makes lefthook finish this before the priority-2 commands
-    # start, so lint always scans the regenerated changelog, never a stale or
-    # mid-write version (the rest of the block still runs in parallel).
-    changelog:
-      priority: 1
-      run: mise run changelog && git add docs/CHANGELOG.md
-
-    lint:
-      priority: 2
-      run: mise run lint
+    # 📝 GENERATE + LINT, deliberately one sequential command: lefthook's
+    # `priority` field does NOT order commands under `parallel: true` (verified
+    # on lefthook 2.1.9), so regenerating the changelog in its own command
+    # would race the lint pass that scans it. Chaining them guarantees lint
+    # sees the regenerated file, and the trailing git add restages
+    # docs/CHANGELOG.md in case markdownlint's auto-fix mutated it after
+    # staging. The changelog itself is never hand-edited (git-cliff, see
+    # .config/cliff.toml); pattern from rka-template v0.3.0.
+    changelog-and-lint:
+      run: mise run changelog && git add docs/CHANGELOG.md && mise run lint && git add docs/CHANGELOG.md
 
     # 🔒 GUARD 1: Prevent accidentally committing the raw plaintext template files
     secrets-leak-guard:
-      priority: 2
       files: git status --porcelain
       run: |
         if git status --porcelain | grep -q ".config/mise/.env.yaml$"; then
@@ -46,7 +42,6 @@ pre-commit:
 
     # 🔒 GUARD 2: Prevent accidentally committing raw AGE private key text files
     keys-leak-guard:
-      priority: 2
       files: git status --porcelain
       run: |
         if git status --porcelain | grep -E -q "\.config/sops/age/keys\.txt$"; then
@@ -74,7 +69,6 @@ pre-commit:
     # blocks the commit. The keys-leak-guard above remains the real secret
     # control and needs no key of its own.
     sops-integrity-check:
-      priority: 2
       run: |
         if [ -f .config/sops/age/keys.txt ]; then
           mise run sops:project:test-config

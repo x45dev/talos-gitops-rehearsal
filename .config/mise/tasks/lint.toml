@@ -80,7 +80,10 @@ run = '''
 set -euo pipefail
 msg_file="$1"
 subject="$(head -1 "$msg_file")"
-pattern='^(feat|fix|docs?|style|refactor|perf|test|chore|build|ci|revert|add|change|remove|deprecate)(\([a-z0-9./_+-]+\))?!?: .+'
+# no-mistakes is the pipeline's own commit type (e.g. "no-mistakes(review): ...");
+# .config/cliff.toml already has parsers bucketing those commits, so allowing
+# them here keeps the pipeline's internal commits from failing the hook.
+pattern='^(feat|fix|docs?|style|refactor|perf|test|chore|build|ci|revert|add|change|remove|deprecate|no-mistakes)(\([a-z0-9./_+-]+\))?!?: .+'
 if [[ "$subject" =~ ^Merge ]] || [[ "$subject" =~ ^Revert\ \" ]]; then
   exit 0
 fi
