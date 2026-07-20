@@ -62,11 +62,12 @@ application-overlay carry over, the provisioning substrate does not
   Every tool version is pinned in `.config/mise/config.toml`'s `[tools]` table
   (age, bats, flux2, git-cliff, hadolint, helm, jq, kubectl, lefthook, lychee, sops,
   talosctl, vale, yq).
-- **Git hooks:** Lefthook, running lint and SOPS/secrets-leak guards before every
-  commit (`README.md` line 63; `.config/lefthook.yaml`).
+- **Git hooks:** Lefthook, regenerating `docs/CHANGELOG.md` and running lint and
+  SOPS/secrets-leak guards before every commit (`README.md` line 79;
+  `.config/lefthook.yaml`).
 - **Prose linting:** vale and markdownlint, enforcing this project's own documentation
   conventions - no em dashes, one sentence per line
-  (`README.md` line 65; `.config/vale/`, `.config/markdownlint/`).
+  (`README.md` line 81; `.config/vale/`, `.config/markdownlint/`).
 - **Changelog:** git-cliff, generating `docs/CHANGELOG.md` from Conventional Commits;
   explicitly never hand-edited (`README.md` line 39; `.config/cliff.toml`).
 - **Turnkey payload components** (all Flux-reconciled under `clusters/workload/`):

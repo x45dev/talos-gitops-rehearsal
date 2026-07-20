@@ -19,8 +19,16 @@ fail_on_error: true
 pre-commit:
   parallel: true
   commands:
-    lint:
-      run: mise run lint
+    # 📝 GENERATE + LINT, deliberately one sequential command: lefthook's
+    # `priority` field does NOT order commands under `parallel: true` (verified
+    # on lefthook 2.1.9), so regenerating the changelog in its own command
+    # would race the lint pass that scans it. Chaining them guarantees lint
+    # sees the regenerated file, and the trailing git add restages
+    # docs/CHANGELOG.md in case markdownlint's auto-fix mutated it after
+    # staging. The changelog itself is never hand-edited (git-cliff, see
+    # .config/cliff.toml); pattern from rka-template v0.3.0.
+    changelog-and-lint:
+      run: mise run changelog && git add docs/CHANGELOG.md && mise run lint && git add docs/CHANGELOG.md
 
     # 🔒 GUARD 1: Prevent accidentally committing the raw plaintext template files
     secrets-leak-guard:

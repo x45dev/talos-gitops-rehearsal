@@ -96,7 +96,6 @@ task. Paths are repo-relative in `kind-talos-gitops` unless prefixed.
 - [x] **T018** Verify all six acceptance criteria in `spec.md`; attach the T008 transcripts
       and the T007/T011 validator outputs as evidence in the PR description.
 
-
 ## Execution evidence (2026-07-19)
 
 - **T001**: Adapted: ported from the released v0.2.0 template validator (rule-identical, flavor-agnostic yq probe) not the RKA reference script, since mikefarah yq is unavailable here and taking the released artifact is release-train-correct (ADR-0012).
