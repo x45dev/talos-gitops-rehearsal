@@ -2,8 +2,8 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.1
-date: 2026-07-19
+version: 0.1.2
+date: 2026-07-22
 type: context
 ---
 
@@ -31,6 +31,13 @@ phased-status section, and the review's survey of this repo.
   (2026-07-13), with the promotion evidence retained in `docs/reviews/`.
 - Load-bearing pins recorded with rationale: Cilium 1.18.11 (ADR-0002,
   1.19.x breaks host-network DNS on Talos 1.13), Flux 2.9.0.
+- Frontmatter gate restored and rule-current: `scripts/validate-frontmatter.sh`
+  matches `rka-template` v0.4.0 (rules 1-7) and passes green on all 11 governed
+  documents; the `lint:frontmatter` task hard-fails if the script goes missing.
+- Upstream conventions verified current (2026-07-22 survey): the released
+  RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
+  The RKA ADR-0013 spec-lifecycle gate (validator rules 8 and 9) is pending a
+  tagged `rka-template` release before adoption (see `activeContext.md`).
 
 ## What's left
 
@@ -39,15 +46,16 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- Working-state and governance hygiene from the 2026-07-19 review: restore
-  the missing frontmatter validator, progress the `draft` ADR/constitution
-  backlog, decide the scope-identity and rename questions
-  (see `activeContext.md`).
+- Working-state and governance hygiene from the 2026-07-19 review: progress
+  the `draft` ADR/constitution backlog and decide the scope-identity and
+  rename questions (see `activeContext.md`).
+- Retire the completed `docs/specs/001-governance-parity/` bundle once the
+  RKA ADR-0013 spec-lifecycle gate ships in a tagged `rka-template` release:
+  migrate it into `knowledge/specs/`, add an extraction record, set
+  `status: archived`.
 
 ## Known issues / limitations
 
-- `scripts/validate-frontmatter.sh` is referenced by the lint task but does
-  not exist; frontmatter validation is currently a silent no-op.
 - Single-user by design: Dex's GitHub connector carries no org/team
   restriction; must be restricted before the tunnel ever serves a second
   person (constitution non-goals; `clusters/workload/README.md`).

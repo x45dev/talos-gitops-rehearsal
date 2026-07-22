@@ -2,8 +2,8 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.1
-date: 2026-07-19
+version: 0.1.2
+date: 2026-07-22
 type: context
 ---
 
@@ -38,19 +38,42 @@ no work has started on it.
   (`clusters/workload/flux-system/gotk-sync.yaml`), so it should ride with a
   deliberate change, not happen casually.
 
+## Upstream tracking (2026-07-22 survey)
+
+Surveyed the three upstreams: `rka-template` at its latest tag v0.4.0, the RKA
+reference repo and `agent-standards` at `main`.
+The most recent released conventions are already applied here: the six-field
+frontmatter schema, `adr_status`, the rule-current validator (rules 1-7), and
+`hide = true` on the aggregate lint tasks.
+`agent-standards` adds nothing to pull: its ADR-0005 declines to enforce a spec
+lifecycle outside RKA-adopted repos, and its agent entry points are user-level
+config, not repo-distributed.
+
+One newer convention is pending, not applied: RKA ADR-0013 governs spec bundles
+under `knowledge/specs/` with validator rules 8 and 9 (a bundle whose tasks are
+all complete must be `archived` and carry an extraction record).
+Those rules live only in the RKA reference repo's `main`; they have not shipped
+in `rka-template` v0.4.0, so per ADR-0012 (consume at tagged releases, never
+HEAD) they are deliberately not adopted yet.
+The trigger to revisit is the first `rka-template` release that carries rules 8
+and 9; at that point the finished `docs/specs/001-governance-parity/` bundle
+migrates into `knowledge/specs/` and is retired (see `progress.md`).
+
 ## Next steps (to-do)
 
-- [ ] **Restore `scripts/validate-frontmatter.sh`** - referenced by
-      `.config/mise/tasks/lint.toml` but absent, so frontmatter linting
-      silently no-ops today.
-      Copy the current validator from the RKA reference repo (or wait for the
-      tagged `rka-template` release per the release-train model and take it
-      from there).
+- [x] **Restore `scripts/validate-frontmatter.sh`** - done: the validator is
+      present and rule-current with `rka-template` v0.4.0 (rules 1-7), and the
+      `lint:frontmatter` gate hard-fails when it is missing rather than
+      no-opping.
+      Confirmed green (11 files) by the 2026-07-22 survey.
+- [x] **Adopt release-pinned upstream tracking** (ecosystem review R1):
+      recorded in `knowledge/context.md` (System patterns) and in the survey
+      note above.
+      Pins verified 2026-07-22: `rka-template` v0.4.0; RKA reference and
+      `agent-standards` consumed only through tagged releases per ADR-0012,
+      never at upstream HEAD.
 - [ ] **Promote or progress the `draft` governance backlog**: ADR-0003 to
       ADR-0006 are `accepted` but still `status: draft`; the constitution,
       context, and PRD are `draft` with two open constitution questions.
 - [ ] **Phase 4** (lifecycle, idempotency, metrics hardening) per
       `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md`.
-- [ ] **Adopt release-pinned upstream tracking** (ecosystem review R1):
-      devbase image digest bumps and any RKA/template convention updates are
-      pulled deliberately at tagged releases, not ad hoc.

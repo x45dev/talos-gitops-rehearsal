@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **specs:** Add governance-parity spec-kit plan
 - **changelog:** Regenerate docs/CHANGELOG.md automatically at pre-commit
 - **docs:** Apply markdownlint auto-fixes left unstaged by the lint hook
+- **document:** Sync README and context.md docs with pre-commit changelog regeneration change
 
 ### Fixed
 
