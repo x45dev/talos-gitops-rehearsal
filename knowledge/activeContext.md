@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.2
+version: 0.1.3
 date: 2026-07-22
 type: context
 ---
@@ -23,20 +23,19 @@ Cilium, the `clusters/workload/` Flux loop, and the full turnkey payload
 Next execution phase is Phase 4 (lifecycle, idempotency, metrics hardening);
 no work has started on it.
 
-## Decisions in flight
+## Decisions settled by ADR-0007 (accepted 2026-07-22)
 
-- **Scope identity (ecosystem review R6).** This repo is, by its own
-  constitution, a single-user single-cluster local GitOps rehearsal tool;
-  multi-user identity is an explicit non-goal.
-  The multi-customer ephemeral IDP ambition should become a separate future
-  project (own PRD) that consumes this repo's verified patterns, rather than
-  living implicitly in this repo's framing.
-  Proposed, not yet decided.
-- **Repo name.** `kind` was removed entirely by ADR-0001; the name
-  `kind-talos-gitops` is a stale artifact.
-  A rename is cheap but touches the Flux `GitRepository` URL
-  (`clusters/workload/flux-system/gotk-sync.yaml`), so it should ride with a
-  deliberate change, not happen casually.
+- **Scope identity (ecosystem review R6).** Decided: this repo is a single-user
+  single-cluster local GitOps rehearsal tool; the multi-customer ephemeral IDP
+  is a separate future project (own PRD) that consumes this repo's verified
+  patterns, rather than living implicitly in this repo's framing.
+  Recorded in `knowledge/adr/ADR-0007.md` (now `adr_status: accepted`).
+- **Repo name.** `kind` was removed entirely by ADR-0001, so `kind-talos-gitops`
+  is a stale artifact.
+  Recorded-deferred in ADR-0007: fold the rename into the next change that
+  already touches the Flux `GitRepository` URL
+  (`clusters/workload/flux-system/gotk-sync.yaml`), rather than churning a
+  running cluster's Flux source for no functional gain.
 
 ## Upstream tracking (2026-07-22 survey)
 
@@ -72,8 +71,13 @@ migrates into `knowledge/specs/` and is retired (see `progress.md`).
       Pins verified 2026-07-22: `rka-template` v0.4.0; RKA reference and
       `agent-standards` consumed only through tagged releases per ADR-0012,
       never at upstream HEAD.
-- [ ] **Promote or progress the `draft` governance backlog**: ADR-0003 to
-      ADR-0006 are `accepted` but still `status: draft`; the constitution,
-      context, and PRD are `draft` with two open constitution questions.
+- [~] **Progress the `draft` governance backlog** (2026-07-22): ADR-0003 to
+      ADR-0006 promoted `draft -> active` (evidence artifact adjudicated and
+      recorded), ADR-0007 accepted and `active`, `context.md` promoted to
+      `active`, and the PRD's illegal outside-`knowledge/` `status` field
+      stripped (kept as ungoverned working material).
+      Remaining: the constitution stays `draft` pending the maintainer's
+      confirmation that its synthesized definition-of-done matches intent (its
+      one still-open question); canonical promotion of any ADR is a later gate.
 - [ ] **Phase 4** (lifecycle, idempotency, metrics hardening) per
       `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md`.

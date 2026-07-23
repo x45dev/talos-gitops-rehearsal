@@ -1,8 +1,8 @@
 ---
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
-status: draft
-version: 0.2.2
+status: active
+version: 0.2.3
 date: 2026-07-22
 type: context
 ---

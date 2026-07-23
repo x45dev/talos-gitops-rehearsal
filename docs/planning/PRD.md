@@ -1,9 +1,8 @@
 ---
 id: PRD-ephemeral-gitops-idp
 title: Ephemeral GitOps IDP (Local Edition)
-status: draft
-version: 1.5.0
-date: 2026-07-07
+version: 1.5.1
+date: 2026-07-22
 ---
 
 # Product Requirements Document (PRD)

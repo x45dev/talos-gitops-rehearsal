@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.2
+version: 0.1.3
 date: 2026-07-22
 type: context
 ---
@@ -38,6 +38,12 @@ phased-status section, and the review's survey of this repo.
   RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
   The RKA ADR-0013 spec-lifecycle gate (validator rules 8 and 9) is pending a
   tagged `rka-template` release before adoption (see `activeContext.md`).
+- Second RKA lifecycle pass (2026-07-22): ADR-0003 through ADR-0006 promoted
+  `draft -> active` on re-verified evidence (`docs/reviews/`), ADR-0007 accepted
+  (`adr_status: accepted`, `active`) settling the scope-identity decision, and
+  `context.md` promoted to `active`.
+  The PRD's illegal outside-`knowledge/` `status` field was stripped, keeping it
+  as ungoverned working material.
 
 ## What's left
 
@@ -46,9 +52,11 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- Working-state and governance hygiene from the 2026-07-19 review: progress
-  the `draft` ADR/constitution backlog and decide the scope-identity and
-  rename questions (see `activeContext.md`).
+- Governance backlog (2026-07-22): ADR-0003..0006 are now `active` and
+  ADR-0007 is accepted (scope identity settled, rename recorded-deferred).
+  Remaining: confirm the constitution's definition-of-done synthesis, then
+  promote the constitution from `draft`; canonical promotion of the `active`
+  ADRs is a later gate.
 - Retire the completed `docs/specs/001-governance-parity/` bundle once the
   RKA ADR-0013 spec-lifecycle gate ships in a tagged `rka-template` release:
   migrate it into `knowledge/specs/`, add an extraction record, set
@@ -60,8 +68,9 @@ phased-status section, and the review's survey of this repo.
   restriction; must be restricted before the tunnel ever serves a second
   person (constitution non-goals; `clusters/workload/README.md`).
 - Multi-customer / multi-tenant separation has no foundation in this repo;
-  treating this repo as "the IDP" overstates its scope (see the scope
-  decision in flight).
+  treating this repo as "the IDP" overstates its scope (settled by ADR-0007:
+  this repo is the single-tenant rehearsal tool, the multi-customer IDP is a
+  separate future project).
 - Devcontainer couples to two sibling repos' churn: the digest-pinned
   `devbase` image (bootstrap-workspace) and the mounted `agent-standards`
   checkout; both update manually.

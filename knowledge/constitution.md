@@ -2,8 +2,8 @@
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
 status: draft
-version: 0.1.1
-date: 2026-07-19
+version: 0.1.2
+date: 2026-07-22
 type: constitution
 ---
 
@@ -155,14 +155,16 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
 
 ## Open questions for the human
 
-- Should the PRD (`docs/planning/PRD.md`) itself be inducted as a `knowledge/specs/`
-  feature specification under RFC-003 section 4?
-  It is temporary working-document material by RFC-003's own definition, but brownfield
-  discovery's output contract does not include specs, so this constitution only
-  extracts from it; the induction decision is left to the human (see the discovery
-  report's disposition table).
-- No document states a single unified "definition of done" in one place; the synthesis
-  above draws it from two sections (engineering gates + success metrics) that agree in
-  shape but were never stated together.
+- **PRD induction - resolved 2026-07-22.** The PRD (`docs/planning/PRD.md`) is kept as
+  ungoverned working material rather than inducted as a `knowledge/specs/` feature
+  specification.
+  Its illegal outside-`knowledge/` `status` field was stripped to settle the halfway
+  state RKA forbids (ungoverned documents carry no `status`, RFC-001 section 2).
+  Induction remains available later if the PRD ever needs the lifecycle, but it is not
+  governed knowledge today.
+- **Unified definition-of-done synthesis - still open.** No document states a single
+  unified "definition of done" in one place; the synthesis above draws it from two
+  sections (engineering gates + success metrics) that agree in shape but were never
+  stated together.
   Confirm this synthesis matches intent before promoting this constitution past
-  `draft`.
+  `draft`; this is the sole remaining gate on the constitution's own promotion.
