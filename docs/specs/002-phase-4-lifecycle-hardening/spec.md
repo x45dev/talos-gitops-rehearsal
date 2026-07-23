@@ -59,6 +59,10 @@ than on a re-runnable, measured, self-verifying pipeline.
   re-run with the target state already reached is a no-op, and every step detects its actual precondition
   and self-heals rather than sleeping or blindly re-applying. No fixed-duration sleep may stand in for a
   precondition check (the standing idempotency bar).
+  Accepted exception: idempotent-by-overwrite external-API writes that have no destructive side effect,
+  specifically the `cloudflare-tunnel-bootstrap` ingress-config PUT and DNS upsert, are unconditional by
+  design and are not reworked; they are listed explicitly as exceptions rather than counted as blind
+  re-applies.
 - **FR2 - Hardened, self-verifying teardown.** Teardown runs `talosctl cluster destroy`, removes
   `.kube-*.config`/`.talosconfig`, and then verifies the zero-residue invariant: no Docker containers,
   volumes, or networks remain for the cluster (including the `talosctl`-created network), and no cluster
@@ -91,9 +95,12 @@ than on a re-runnable, measured, self-verifying pipeline.
 
 ## Acceptance criteria
 
-1. **Idempotent re-run**: from a converged environment, a second bootstrap run completes as a no-op (no
-   resource changes, no errors, no duplicated work) and does so measurably faster than a cold run; proven
-   twice in a row.
+1. **Idempotent re-run (mechanical)**: from a converged environment, a second `all` run reports every
+   `kubectl apply` as `unchanged` (zero `configured`/`created` lines), performs no cluster re-create and
+   no Cilium re-install (the adoption path is skipped), and exits 0 with no errors; the accepted
+   idempotent-by-overwrite external writes (FR1) are exempt. As a corroborating signal the second run
+   completes in well under half the cold-run wall time. Proven twice in a row, both no-op transcripts
+   saved.
 2. **Zero-residue teardown, verified**: after `teardown`, an automated check reports zero cluster Docker
    containers/volumes/networks and zero config residue in repo-local and user-global kube/talos config
    and the `talosctl` state directory; a deliberately seeded residual artifact makes the check fail.

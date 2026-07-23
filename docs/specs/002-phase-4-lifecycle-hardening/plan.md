@@ -19,21 +19,28 @@ type: plan
   `flux-bootstrap` (install Flux, inject secrets, hand Cilium day-2 to Git), `verify-adoption`,
   `validate` (the three gates), `verify-phase3`, `teardown`, and the `all` aggregate. Phase 4 hardens
   this chain into a re-runnable, self-verifying, measured lifecycle; it does not add payload components.
-- **Idempotency is partially there, not proven end to end.** `provision`, `cilium`, and
-  `cloudflare-tunnel-bootstrap` already describe themselves as idempotent, and `provision` waits on a
-  real condition (`until kubectl get --raw='/readyz'`), not a fixed sleep. What is missing is a proof
-  that the whole chain (`all`) re-run against a converged environment is a no-op, and an audit that every
-  step's precondition check is genuine rather than assumed.
-- **Sleep audit distinction.** The `sleep 2` calls inside the `until` loops in `provision` and `validate`
-  are retry backoffs, which are on the right side of the idempotency bar. The anti-pattern the bar
-  forbids is a standalone fixed `sleep N` standing in for a precondition (the spike's retired
-  `sleep 15`). FR1/AC4 is satisfied by confirming no such standalone sleep remains, not by removing
-  retry-loop backoffs.
-- **Teardown already claims residue verification.** `teardown`'s description is "Destroy the Talos
-  cluster and verify zero residue", so the gap is completeness and enforcement, not a missing task: the
-  check must cover Docker containers, volumes, and the `talosctl`-created network, plus repo-local
-  `.kube-*.config`/`.talosconfig` and user-global `~/.kube/config` / `~/.talos/config` contexts and the
-  `talosctl` cluster-state directory, and it must fail loudly on any residual rather than warn.
+- **Idempotency is partially there, not proven end to end.** `provision` and
+  `cloudflare-tunnel-bootstrap` already describe themselves as idempotent, `cilium` adopts-in-place
+  rather than reinstalling once Flux owns it, and `provision` waits on a real condition
+  (`until kubectl get --raw='/readyz'`), not a fixed sleep. What is missing is a proof that the whole
+  chain (`all`) re-run against a converged environment is a no-op, and an audit that every step's
+  precondition check is genuine rather than assumed. One deliberate exception the audit must not flag:
+  `cloudflare-tunnel-bootstrap` does an unconditional ingress-config PUT and DNS upsert with no
+  destructive side effect, which is idempotent-by-overwrite and accepted, not a blind re-apply to fix
+  (FR1).
+- **Sleep audit distinction.** The `sleep 2` calls inside the `until`/`while` loops in `provision`,
+  `validate`, and `verify-phase3` are retry backoffs, which are on the right side of the idempotency bar.
+  The anti-pattern the bar forbids is a standalone fixed `sleep N` standing in for a precondition (the
+  spike's retired `sleep 15`). As of authoring no such standalone sleep remains in the chain, so FR1/AC4
+  is a confirm-and-record step, not a rewrite.
+- **Teardown already claims residue verification, but auto-removes rather than fails.** `teardown`'s
+  description is "Destroy the Talos cluster and verify zero residue", so the gap is completeness and
+  enforcement, not a missing task: the check must cover Docker containers, volumes, and the
+  `talosctl`-created network, plus repo-local `.kube-*.config`/`.talosconfig` and user-global
+  `~/.kube/config` / `~/.talos/config` contexts and the `talosctl` cluster-state directory. Today the
+  task silently cleans leftovers (`docker rm -f`, `docker network rm`); hardening converts that silent
+  cleaning into inspect-and-fail so a residual the destroy did not remove is surfaced, not swept
+  (otherwise the AC2 seeded residual is cleaned before the check can fire).
 - **No spin-up measurement exists.** There is no task that times the stages to all-`Ready`. FR3 needs a
   measurement task that stamps stage boundaries (cluster create, Cilium ready, Flux ready, payload
   `Ready`) and emits a per-stage record; the plan below chooses where that record is committed.
@@ -116,3 +123,16 @@ All five acceptance criteria in `spec.md` verified on a toolchain-equipped host:
 transcript (AC1), the seeded-residual teardown proof (AC2), the committed per-stage spin-up budget (AC3),
 the no-standalone-sleep audit (AC4), and the resolved-or-recorded day-2 Cilium gap (AC5). The measurement
 record and any applied lever are committed with the change.
+
+## Pre-implementation review (gate 3)
+
+A fresh-context adversarial review of the trio was run on 2026-07-22 against the executable-without-guessing
+contract (agent-standards `docs/how-to-spec-driven-work.md` gate 3), prompted to refute.
+It confirmed the plan's grounding facts (every cited `test-talos-spike:*` task exists; the `sleep` calls
+are all retry-loop backoffs; `teardown` already claims residue verification; the FR5 README target
+exists) and surfaced the defects reconciled into this bundle: the two owner-only decision points now carry
+HUMAN markers (`tasks.md` T011 lever 3, T012 FR5 direction), AC1 was made mechanically checkable, the
+FR1-versus-unconditional-Cloudflare-PUT collision is resolved as an accepted exception, and the
+teardown auto-remove trap and seeded-residual matching (T006/T008) are called out.
+Framing review (gate 1, zoom-out) was deliberately skipped: Phase 4 is obviously-scoped hardening whose
+direction is fixed by the PRD and constitution, not a solve-the-right-problem question.
