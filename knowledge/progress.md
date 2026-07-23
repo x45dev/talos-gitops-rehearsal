@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.3
+version: 0.1.4
 date: 2026-07-22
 type: context
 ---
@@ -41,7 +41,9 @@ phased-status section, and the review's survey of this repo.
 - Second RKA lifecycle pass (2026-07-22): ADR-0003 through ADR-0006 promoted
   `draft -> active` on re-verified evidence (`docs/reviews/`), ADR-0007 accepted
   (`adr_status: accepted`, `active`) settling the scope-identity decision, and
-  `context.md` promoted to `active`.
+  `context.md` plus the constitution promoted to `active` (definition-of-done
+  synthesis confirmed).
+  No `draft` governed documents remain.
   The PRD's illegal outside-`knowledge/` `status` field was stripped, keeping it
   as ungoverned working material.
 
@@ -52,11 +54,9 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- Governance backlog (2026-07-22): ADR-0003..0006 are now `active` and
-  ADR-0007 is accepted (scope identity settled, rename recorded-deferred).
-  Remaining: confirm the constitution's definition-of-done synthesis, then
-  promote the constitution from `draft`; canonical promotion of the `active`
-  ADRs is a later gate.
+- Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
+  they should season as `active` through the Phase 4 hardening pass and at
+  least one more consuming change before an evidence-backed canonical review.
 - Retire the completed `docs/specs/001-governance-parity/` bundle once the
   RKA ADR-0013 spec-lifecycle gate ships in a tagged `rka-template` release:
   migrate it into `knowledge/specs/`, add an extraction record, set

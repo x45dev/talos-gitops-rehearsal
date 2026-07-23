@@ -1,8 +1,8 @@
 ---
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
-status: draft
-version: 0.1.2
+status: active
+version: 0.1.3
 date: 2026-07-22
 type: constitution
 ---
@@ -162,9 +162,9 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
   state RKA forbids (ungoverned documents carry no `status`, RFC-001 section 2).
   Induction remains available later if the PRD ever needs the lifecycle, but it is not
   governed knowledge today.
-- **Unified definition-of-done synthesis - still open.** No document states a single
-  unified "definition of done" in one place; the synthesis above draws it from two
-  sections (engineering gates + success metrics) that agree in shape but were never
+- **Unified definition-of-done synthesis - resolved 2026-07-22.** No document states a
+  single unified "definition of done" in one place; the synthesis above draws it from
+  two sections (engineering gates + success metrics) that agree in shape but were never
   stated together.
-  Confirm this synthesis matches intent before promoting this constitution past
-  `draft`; this is the sole remaining gate on the constitution's own promotion.
+  The maintainer confirmed the synthesis matches intent, clearing the last gate on this
+  constitution's promotion from `draft` to `active`.

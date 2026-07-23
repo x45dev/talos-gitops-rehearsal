@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.3
+version: 0.1.4
 date: 2026-07-22
 type: context
 ---
@@ -71,13 +71,13 @@ migrates into `knowledge/specs/` and is retired (see `progress.md`).
       Pins verified 2026-07-22: `rka-template` v0.4.0; RKA reference and
       `agent-standards` consumed only through tagged releases per ADR-0012,
       never at upstream HEAD.
-- [~] **Progress the `draft` governance backlog** (2026-07-22): ADR-0003 to
+- [x] **Progress the `draft` governance backlog** (2026-07-22): ADR-0003 to
       ADR-0006 promoted `draft -> active` (evidence artifact adjudicated and
-      recorded), ADR-0007 accepted and `active`, `context.md` promoted to
-      `active`, and the PRD's illegal outside-`knowledge/` `status` field
+      recorded), ADR-0007 accepted and `active`, and `context.md` plus the
+      constitution promoted to `active` (its definition-of-done synthesis
+      confirmed). The PRD's illegal outside-`knowledge/` `status` field was
       stripped (kept as ungoverned working material).
-      Remaining: the constitution stays `draft` pending the maintainer's
-      confirmation that its synthesized definition-of-done matches intent (its
-      one still-open question); canonical promotion of any ADR is a later gate.
+      No `draft` governed documents remain; canonical promotion of the `active`
+      ADRs is a later gate (season through Phase 4).
 - [ ] **Phase 4** (lifecycle, idempotency, metrics hardening) per
       `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md`.
