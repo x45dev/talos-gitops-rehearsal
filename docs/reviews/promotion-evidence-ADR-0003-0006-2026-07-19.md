@@ -140,7 +140,22 @@ back) is equally recordable.
 **Until that recorded human decision, all four remain `draft`.** The agent does not
 set `status`.
 
-## Outcome (to be recorded by the human)
+## Outcome (recorded by the human)
 
-Not yet recorded. This section is intentionally empty until the non-author reviewer
-adjudicates the evidence above and records the decision here.
+**Decision (2026-07-22):** the human maintainer, acting as the non-author reviewer,
+adjudicated the furnished evidence above and approved promotion of ADR-0003,
+ADR-0004, ADR-0005, and ADR-0006 from `draft` to `active`.
+Each now carries `status: active` (patch version bump `0.1.1 -> 0.1.2`); `adr_status`
+stays `accepted` on all four.
+The evidence anchors were re-verified against the committed tree on the decision date
+before recording.
+
+Canonical readiness was neither proposed nor granted: each ADR seasons as `active`
+pending the Phase 4 hardening pass and at least one more consuming change, per the
+proposed-decision note above.
+The two `canonical` ADRs touched by the disclosed schema migration (ADR-0001,
+ADR-0002, `1.0.0 -> 1.0.1`) were reviewed in the same sitting; no decision content
+changed, so they remain `canonical`.
+
+The retrievable record of this decision is this artifact together with the promoting
+commit on `claude/project-workflow-rka-template-ohg603`.

@@ -1,9 +1,9 @@
 ---
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
-status: draft
-version: 0.1.1
-date: 2026-07-19
+status: active
+version: 0.1.5
+date: 2026-07-22
 type: constitution
 ---
 
@@ -155,14 +155,16 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
 
 ## Open questions for the human
 
-- Should the PRD (`docs/planning/PRD.md`) itself be inducted as a `knowledge/specs/`
-  feature specification under RFC-003 section 4?
-  It is temporary working-document material by RFC-003's own definition, but brownfield
-  discovery's output contract does not include specs, so this constitution only
-  extracts from it; the induction decision is left to the human (see the discovery
-  report's disposition table).
-- No document states a single unified "definition of done" in one place; the synthesis
-  above draws it from two sections (engineering gates + success metrics) that agree in
-  shape but were never stated together.
-  Confirm this synthesis matches intent before promoting this constitution past
-  `draft`.
+- **PRD induction - resolved 2026-07-22 (ADR-0008).** The PRD is kept as an unmanaged
+  extraction source and is not inducted: its durable content already lives in the
+  governed constitution, context, and ADRs, so a governed `knowledge/PRD.md` would only
+  reintroduce PRD/constitution redundancy (the reason a brief induction was reverted).
+  The original `docs/planning/PRD.md` is retained as ungoverned working material with no
+  lifecycle `status` (RFC-001 section 2).
+  See ADR-0008 (this repo) and RKA ADR-0008.
+- **Unified definition-of-done synthesis - resolved 2026-07-22.** No document states a
+  single unified "definition of done" in one place; the synthesis above draws it from
+  two sections (engineering gates + success metrics) that agree in shape but were never
+  stated together.
+  The maintainer confirmed the synthesis matches intent, clearing the last gate on this
+  constitution's promotion from `draft` to `active`.

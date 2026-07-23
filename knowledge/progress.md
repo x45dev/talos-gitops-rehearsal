@@ -2,8 +2,8 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.1
-date: 2026-07-19
+version: 0.1.6
+date: 2026-07-22
 type: context
 ---
 
@@ -31,6 +31,22 @@ phased-status section, and the review's survey of this repo.
   (2026-07-13), with the promotion evidence retained in `docs/reviews/`.
 - Load-bearing pins recorded with rationale: Cilium 1.18.11 (ADR-0002,
   1.19.x breaks host-network DNS on Talos 1.13), Flux 2.9.0.
+- Frontmatter gate restored and rule-current: `scripts/validate-frontmatter.sh`
+  matches `rka-template` v0.4.0 (rules 1-7) and passes green on all 11 governed
+  documents; the `lint:frontmatter` task hard-fails if the script goes missing.
+- Upstream conventions verified current (2026-07-22 survey): the released
+  RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
+  The RKA ADR-0013 spec-lifecycle gate (validator rules 8 and 9) is pending a
+  tagged `rka-template` release before adoption (see `activeContext.md`).
+- Second RKA lifecycle pass (2026-07-22): ADR-0003 through ADR-0006 promoted
+  `draft -> active` on re-verified evidence (`docs/reviews/`), ADR-0007 accepted
+  (`adr_status: accepted`, `active`) settling the scope-identity decision, and
+  `context.md` plus the constitution promoted to `active` (definition-of-done
+  synthesis confirmed).
+  The PRD is kept unmanaged as an extraction source per ADR-0008 (a brief
+  induction into `knowledge/PRD.md` was reverted to avoid PRD/constitution
+  redundancy); `docs/planning/PRD.md` remains ungoverned with its `status`
+  stripped.
 
 ## What's left
 
@@ -39,21 +55,25 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- Working-state and governance hygiene from the 2026-07-19 review: restore
-  the missing frontmatter validator, progress the `draft` ADR/constitution
-  backlog, decide the scope-identity and rename questions
-  (see `activeContext.md`).
+- Promote ADR-0008 (`draft`, `adr_status: accepted`) from `draft` to `active`
+  when convenient; it records an in-force decision.
+- Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
+  they should season as `active` through the Phase 4 hardening pass and at
+  least one more consuming change before an evidence-backed canonical review.
+- Retire the completed `docs/specs/001-governance-parity/` bundle once the
+  RKA ADR-0013 spec-lifecycle gate ships in a tagged `rka-template` release:
+  migrate it into `knowledge/specs/`, add an extraction record, set
+  `status: archived`.
 
 ## Known issues / limitations
 
-- `scripts/validate-frontmatter.sh` is referenced by the lint task but does
-  not exist; frontmatter validation is currently a silent no-op.
 - Single-user by design: Dex's GitHub connector carries no org/team
   restriction; must be restricted before the tunnel ever serves a second
   person (constitution non-goals; `clusters/workload/README.md`).
 - Multi-customer / multi-tenant separation has no foundation in this repo;
-  treating this repo as "the IDP" overstates its scope (see the scope
-  decision in flight).
+  treating this repo as "the IDP" overstates its scope (settled by ADR-0007:
+  this repo is the single-tenant rehearsal tool, the multi-customer IDP is a
+  separate future project).
 - Devcontainer couples to two sibling repos' churn: the digest-pinned
   `devbase` image (bootstrap-workspace) and the mounted `agent-standards`
   checkout; both update manually.

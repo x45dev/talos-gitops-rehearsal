@@ -1,12 +1,17 @@
 ---
 id: PRD-ephemeral-gitops-idp
 title: Ephemeral GitOps IDP (Local Edition)
-status: draft
-version: 1.5.0
-date: 2026-07-07
+version: 1.5.1
+date: 2026-07-22
 ---
 
 # Product Requirements Document (PRD)
+
+> **Unmanaged extraction source (ADR-0008).** This PRD is not inducted into the
+> governed knowledge base; its durable content (decisions, invariants, product
+> framing) lives in `knowledge/` (the constitution, context, and ADRs).
+> It is retained here as working material and carries no lifecycle `status`
+> (RFC-001 section 2).
 
 **Project:** Ephemeral GitOps IDP (Local Edition)
 **Target Environment:** Ubuntu 26.04 Workstation

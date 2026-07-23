@@ -1,9 +1,9 @@
 ---
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
-status: draft
-version: 0.2.1
-date: 2026-07-19
+status: active
+version: 0.2.3
+date: 2026-07-22
 type: context
 ---
 
@@ -113,6 +113,14 @@ application-overlay carry over, the provisioning substrate does not
   persistent SSH deploy key (not per-cycle), and a scratch-branch repoint of the
   `GitRepository` for local iteration, chosen specifically to keep the Flux source
   *kind* identical between local and cloud.
+- **Release-pinned upstream tracking.** RKA, `agent-standards`, and the
+  `rka-template` conventions are consumed only at tagged releases, never at
+  upstream HEAD (RKA ADR-0012 release trains).
+  The current pin is `rka-template` v0.4.0 (verified 2026-07-22), and the
+  `devbase` image is digest-pinned in `.devcontainer/Dockerfile`.
+  A newer upstream convention (RKA ADR-0013 spec-bundle lifecycle, validator
+  rules 8 and 9) is deliberately not adopted until it ships in a tagged
+  `rka-template` release (see `activeContext.md` upstream-tracking note).
 
 ## Known accepted gaps (v1, not solved by design)
 
