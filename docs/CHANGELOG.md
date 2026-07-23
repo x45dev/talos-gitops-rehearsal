@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **document:** Sync README and context.md docs with pre-commit changelog regeneration change
 - **knowledge:** Record 2026-07-22 upstream convention survey in working state
 - **governance:** Record RKA lifecycle decisions - promote ADR-0003..0007, context
+- **governance:** Promote the constitution draft -> active
 
 ### Fixed
 

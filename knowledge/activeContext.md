@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.4
+version: 0.1.5
 date: 2026-07-22
 type: context
 ---
@@ -75,9 +75,12 @@ migrates into `knowledge/specs/` and is retired (see `progress.md`).
       ADR-0006 promoted `draft -> active` (evidence artifact adjudicated and
       recorded), ADR-0007 accepted and `active`, and `context.md` plus the
       constitution promoted to `active` (its definition-of-done synthesis
-      confirmed). The PRD's illegal outside-`knowledge/` `status` field was
-      stripped (kept as ungoverned working material).
-      No `draft` governed documents remain; canonical promotion of the `active`
-      ADRs is a later gate (season through Phase 4).
+      confirmed). The PRD was inducted into governance as `knowledge/PRD.md`
+      (`type: prd`, entered at `draft`); the `docs/planning/PRD.md` original is
+      retained ungoverned with its `status` stripped.
+- [ ] **Promote the newly-inducted `knowledge/PRD.md`** from `draft` to
+      `active`: its content is already verified by the built, live-tested system,
+      so this is a ready informal-verification step. Canonical promotion of the
+      `active` ADRs remains a later gate (season through Phase 4).
 - [ ] **Phase 4** (lifecycle, idempotency, metrics hardening) per
       `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md`.

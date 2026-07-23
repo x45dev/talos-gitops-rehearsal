@@ -1,20 +1,25 @@
 ---
-id: PRD-ephemeral-gitops-idp
-title: Ephemeral GitOps IDP (Local Edition)
-version: 1.5.1
+id: PRD
+title: Ephemeral GitOps IDP (Local Edition) - Product Requirements
+status: draft
+version: 1.5.2
 date: 2026-07-22
+type: prd
 ---
 
 # Product Requirements Document (PRD)
 
-> **Inducted 2026-07-22.** The governed, authoritative version of this PRD now
-> lives at [`knowledge/PRD.md`](../../knowledge/PRD.md) (`type: prd`).
-> This file is retained as the ungoverned working original and as a stable path
-> for existing references; it carries no lifecycle `status` (RFC-001 section 2).
+> Inducted into the governed knowledge base from `docs/planning/PRD.md` on
+> 2026-07-22, resolving the constitution's PRD-induction open question (RFC-003
+> minimal artifact set).
+> This is the authoritative, governed version (`type: prd`); the copy under
+> `docs/planning/PRD.md` is retained as the ungoverned working original.
+> Cross-references below to `PLAN-*`, `ZOR-*`, and the two dated planning ADRs
+> (`ADR-capd-*`, `ADR-cilium-*`) name files under `docs/planning/`.
 
 **Project:** Ephemeral GitOps IDP (Local Edition)
 **Target Environment:** Ubuntu 26.04 Workstation
-**Status:** Re-framed 2026-07-06 - local v1 provisions Talos via `talosctl cluster create` (Docker provisioner) with a single Flux loop; all CAPI machinery is deferred to the cloud milestone (Section 6, `ZOR-ephemeral-gitops-idp-2026-07-06.md`)
+**Re-framed:** 2026-07-06 - local v1 provisions Talos via `talosctl cluster create` (Docker provisioner) with a single Flux loop; all CAPI machinery is deferred to the cloud milestone (Section 6, `docs/planning/ZOR-ephemeral-gitops-idp-2026-07-06.md`)
 
 This PRD synthesizes the requirements, the structural decisions, and the state of the spike test.
 It was revised on 2026-07-05 after a zoom-out review (`ZOR-ephemeral-gitops-idp-2026-07-05.md`) and re-framed on 2026-07-06 after a second zoom-out review (`ZOR-ephemeral-gitops-idp-2026-07-06.md`) triggered by a live-probe finding that falsified the original architecture's core premise.

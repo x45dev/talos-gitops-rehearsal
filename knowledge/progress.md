@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.4
+version: 0.1.5
 date: 2026-07-22
 type: context
 ---
@@ -43,9 +43,9 @@ phased-status section, and the review's survey of this repo.
   (`adr_status: accepted`, `active`) settling the scope-identity decision, and
   `context.md` plus the constitution promoted to `active` (definition-of-done
   synthesis confirmed).
-  No `draft` governed documents remain.
-  The PRD's illegal outside-`knowledge/` `status` field was stripped, keeping it
-  as ungoverned working material.
+  The PRD was inducted into governance as `knowledge/PRD.md` (`type: prd`,
+  entered at `draft`); the `docs/planning/PRD.md` original is retained ungoverned
+  with its `status` stripped.
 
 ## What's left
 
@@ -54,6 +54,9 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
+- Promote the newly-inducted `knowledge/PRD.md` from `draft` to `active`: its
+  content is already verified by the built, live-tested system, so this is a
+  ready informal-verification step.
 - Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
   they should season as `active` through the Phase 4 hardening pass and at
   least one more consuming change before an evidence-backed canonical review.
