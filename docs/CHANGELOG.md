@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **governance:** Promote the constitution draft -> active
 - **governance:** Induct the PRD into knowledge/ as a governed document
 - **governance:** Revert PRD induction; keep it unmanaged per ADR-0008
+- **specs:** Add the Phase 4 lifecycle-hardening feature spec (002)
 
 ### Fixed
 
