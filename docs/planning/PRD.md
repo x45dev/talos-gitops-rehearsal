@@ -7,10 +7,11 @@ date: 2026-07-22
 
 # Product Requirements Document (PRD)
 
-> **Inducted 2026-07-22.** The governed, authoritative version of this PRD now
-> lives at [`knowledge/PRD.md`](../../knowledge/PRD.md) (`type: prd`).
-> This file is retained as the ungoverned working original and as a stable path
-> for existing references; it carries no lifecycle `status` (RFC-001 section 2).
+> **Unmanaged extraction source (ADR-0008).** This PRD is not inducted into the
+> governed knowledge base; its durable content (decisions, invariants, product
+> framing) lives in `knowledge/` (the constitution, context, and ADRs).
+> It is retained here as working material and carries no lifecycle `status`
+> (RFC-001 section 2).
 
 **Project:** Ephemeral GitOps IDP (Local Edition)
 **Target Environment:** Ubuntu 26.04 Workstation

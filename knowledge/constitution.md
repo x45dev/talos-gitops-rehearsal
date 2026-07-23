@@ -2,7 +2,7 @@
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
 status: active
-version: 0.1.4
+version: 0.1.5
 date: 2026-07-22
 type: constitution
 ---
@@ -155,12 +155,13 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
 
 ## Open questions for the human
 
-- **PRD induction - resolved 2026-07-22.** The PRD was inducted into the governed
-  knowledge base as `knowledge/PRD.md` (`type: prd`, entered at `status: draft`); the
-  original at `docs/planning/PRD.md` is retained as the ungoverned working copy with
-  its illegal `status` field stripped (RFC-001 section 2).
-  This settles the halfway state RKA forbids: there is now one governed, authoritative
-  PRD, and the working copy carries no lifecycle status.
+- **PRD induction - resolved 2026-07-22 (ADR-0008).** The PRD is kept as an unmanaged
+  extraction source and is not inducted: its durable content already lives in the
+  governed constitution, context, and ADRs, so a governed `knowledge/PRD.md` would only
+  reintroduce PRD/constitution redundancy (the reason a brief induction was reverted).
+  The original `docs/planning/PRD.md` is retained as ungoverned working material with no
+  lifecycle `status` (RFC-001 section 2).
+  See ADR-0008 (this repo) and RKA ADR-0008.
 - **Unified definition-of-done synthesis - resolved 2026-07-22.** No document states a
   single unified "definition of done" in one place; the synthesis above draws it from
   two sections (engineering gates + success metrics) that agree in shape but were never
