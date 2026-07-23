@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **governance:** Record RKA lifecycle decisions - promote ADR-0003..0007, context
 - **governance:** Promote the constitution draft -> active
 - **governance:** Induct the PRD into knowledge/ as a governed document
+- **governance:** Revert PRD induction; keep it unmanaged per ADR-0008
 
 ### Fixed
 
