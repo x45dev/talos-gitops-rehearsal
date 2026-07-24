@@ -2,8 +2,8 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.7
-date: 2026-07-22
+version: 0.1.8
+date: 2026-07-24
 type: context
 ---
 
@@ -48,15 +48,20 @@ frontmatter schema, `adr_status`, the rule-current validator (rules 1-7), and
 lifecycle outside RKA-adopted repos, and its agent entry points are user-level
 config, not repo-distributed.
 
-One newer convention is pending, not applied: RKA ADR-0013 governs spec bundles
-under `knowledge/specs/` with validator rules 8 and 9 (a bundle whose tasks are
-all complete must be `archived` and carry an extraction record).
-Those rules live only in the RKA reference repo's `main`; they have not shipped
-in `rka-template` v0.4.0, so per ADR-0012 (consume at tagged releases, never
-HEAD) they are deliberately not adopted yet.
-The trigger to revisit is the first `rka-template` release that carries rules 8
-and 9; at that point the finished `docs/specs/001-governance-parity/` bundle
-migrates into `knowledge/specs/` and is retired (see `progress.md`).
+**Update 2026-07-24: RKA ADR-0013 adopted early, by maintainer decision.**
+The survey originally deferred it, because rules 8 and 9 live only in the RKA
+reference repo's `main` and have not shipped in `rka-template` v0.4.0, so
+ADR-0012 (consume at tagged releases, never HEAD) argued for waiting.
+The maintainer directed adoption now; this repo was the motivating example for
+the upstream rules, and waiting left its own failure mode ungated.
+Recorded as a scoped exception in `knowledge/adr/ADR-0009.md`: rules 8, 9a, and
+9b plus spec-bundle id handling are ported into
+`scripts/validate-frontmatter.sh`, and both bundles now live under
+`knowledge/specs/` (`docs/specs/` is gone).
+ADR-0012 still governs every other upstream convention.
+Outstanding obligation: when a tagged `rka-template` release ships these rules,
+reconcile the ported script against the released one and record any divergence
+in `knowledge/progress.md`.
 
 ## Next steps (to-do)
 
@@ -64,7 +69,7 @@ migrates into `knowledge/specs/` and is retired (see `progress.md`).
       present and rule-current with `rka-template` v0.4.0 (rules 1-7), and the
       `lint:frontmatter` gate hard-fails when it is missing rather than
       no-opping.
-      Confirmed green (12 files as of ADR-0008; count re-verified 2026-07-24).
+      Confirmed green; now extended with rules 8/9 (19 files, 2026-07-24).
 - [x] **Adopt release-pinned upstream tracking** (ecosystem review R1):
       recorded in `knowledge/context.md` (System patterns) and in the survey
       note above.
@@ -78,9 +83,16 @@ migrates into `knowledge/specs/` and is retired (see `progress.md`).
       confirmed). The PRD is kept unmanaged as an extraction source per ADR-0008
       (a brief induction into `knowledge/PRD.md` was reverted to avoid
       PRD/constitution redundancy).
-- [ ] **Promote ADR-0008** (`draft`, `adr_status: accepted`) from `draft` to
-      `active` when convenient; it records an in-force decision. Canonical
-      promotion of the `active` ADRs remains a later gate (season through
-      Phase 4).
+- [x] **Adopt RKA ADR-0013 early** (2026-07-24, maintainer decision): validator
+      rules 8/9a/9b ported and each proven to fail by seeded violation; both
+      spec bundles migrated to `knowledge/specs/`; recorded in ADR-0009.
+      Validator green on 19 governed documents.
+- [ ] **Promote ADR-0008 and ADR-0009** (`draft`, `adr_status: accepted`) from
+      `draft` to `active` when convenient; both record in-force decisions.
+      Canonical promotion of the `active` ADRs remains a later gate (season
+      through Phase 4).
+- [ ] **Reconcile the ported validator** against the released one when a tagged
+      `rka-template` release ships rules 8 and 9 (ADR-0009's standing
+      obligation); record any divergence in `knowledge/progress.md`.
 - [ ] **Phase 4** (lifecycle, idempotency, metrics hardening) per
       `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md`.

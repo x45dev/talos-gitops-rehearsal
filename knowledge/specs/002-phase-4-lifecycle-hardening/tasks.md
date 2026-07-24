@@ -9,7 +9,7 @@ type: tasks
 
 # Tasks: Phase 4 - lifecycle, idempotency, and metrics hardening
 
-**Plan**: `docs/specs/002-phase-4-lifecycle-hardening/plan.md`. **HUMAN** marks a step only the owner
+**Plan**: `knowledge/specs/002-phase-4-lifecycle-hardening/plan.md`. **HUMAN** marks a step only the owner
 may perform - a decision, not a mechanical action; the agent reaches it, stops, and surfaces what is
 needed to decide. Tasks run strictly in order (none are parallelizable). Paths are repo-relative. All
 execution tasks require a host with Docker and the full `mise` toolchain (talosctl, flux, helm,

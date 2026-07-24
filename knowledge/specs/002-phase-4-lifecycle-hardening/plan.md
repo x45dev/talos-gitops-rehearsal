@@ -9,7 +9,7 @@ type: plan
 
 # Implementation Plan: Phase 4 - lifecycle, idempotency, and metrics hardening
 
-**Spec**: `docs/specs/002-phase-4-lifecycle-hardening/spec.md` | **Branch**: `002-phase-4-lifecycle-hardening`
+**Spec**: `knowledge/specs/002-phase-4-lifecycle-hardening/spec.md` | **Branch**: `002-phase-4-lifecycle-hardening`
 
 ## Technical context
 
