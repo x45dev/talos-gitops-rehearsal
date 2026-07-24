@@ -1,11 +1,19 @@
 ---
 id: spec-001-governance-parity
 title: Governance parity - restore the frontmatter gate, migrate the knowledge base, settle scope
-status: draft
-version: 0.1.0
-date: 2026-07-19
+status: archived
+version: 0.2.0
+date: 2026-07-24
 type: spec
 ---
+
+> **Archived 2026-07-24.** All 18 tasks shipped (see `tasks.md` execution evidence) and
+> the pending human decisions were recorded on 2026-07-22, so this bundle is retired
+> rather than left `draft` (a completed spec's status must be advanced, per the
+> spec-driven-work guidance). See the Extraction record at the end of this file.
+> This is an ungoverned retirement under `docs/specs/`; migration into a governed
+> `knowledge/specs/` bundle waits for RKA ADR-0013 shipping in a tagged `rka-template`
+> release (ADR-0012).
 
 # Feature Specification: Governance parity
 
@@ -139,3 +147,25 @@ claims to practise, and its scope remains implicit.
 - **ADR-0007 initial `adr_status`**: authored as `proposed` by default; the human may record
   `accepted` in the same review that adjudicates the promotion-evidence artifact. Either
   satisfies AC3.
+
+## Extraction record (2026-07-24)
+
+Durable knowledge from this bundle already lives in the governed knowledge base and the
+repo's standing artifacts; nothing else required extraction at archival:
+
+- The restored validator and hardened gate: `scripts/validate-frontmatter.sh` +
+  `.config/mise/tasks/lint.toml` (`lint:frontmatter`), recorded in
+  `knowledge/progress.md` "What works".
+- The scope-identity decision and rename option: `knowledge/adr/ADR-0007.md`
+  (accepted 2026-07-22).
+- The release-pinned upstream-tracking pattern (RKA ADR-0012):
+  `knowledge/context.md` "System patterns".
+- The promotion decisions this spec prepared: recorded in
+  `docs/reviews/promotion-evidence-ADR-0003-0006-2026-07-19.md` Outcome
+  (decision 2026-07-22) and in the promoted documents themselves.
+- Open questions this spec surfaced (PRD induction; definition-of-done synthesis):
+  both resolved 2026-07-22, recorded in `knowledge/constitution.md`
+  "Open questions for the human" and `knowledge/adr/ADR-0008.md`.
+
+Superseded by: no successor needed for the governance-parity work itself; Phase 4
+execution continues in `docs/specs/002-phase-4-lifecycle-hardening/`.

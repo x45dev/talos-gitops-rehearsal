@@ -140,15 +140,29 @@ back) is equally recordable.
 **Until that recorded human decision, all four remain `draft`.** The agent does not
 set `status`.
 
-## Outcome (recorded by the human)
+## Outcome
 
-**Decision (2026-07-22):** the human maintainer, acting as the non-author reviewer,
-adjudicated the furnished evidence above and approved promotion of ADR-0003,
+**Decision (2026-07-22, decided by the human maintainer; scribed by the agent):**
+the maintainer, acting as the non-author reviewer, approved promotion of ADR-0003,
 ADR-0004, ADR-0005, and ADR-0006 from `draft` to `active`.
 Each now carries `status: active` (patch version bump `0.1.1 -> 0.1.2`); `adr_status`
 stays `accepted` on all four.
 The evidence anchors were re-verified against the committed tree on the decision date
 before recording.
+
+**Mechanism of record (amended 2026-07-24 for accuracy):** the maintainer authorized
+the promotions by directive in the working session and, when explicitly re-asked
+per-decision, confirmed each one ("Confirm -> active" for this batch).
+The agent then performed the status edits and authored this Outcome section as scribe,
+per the scribe provision in `docs/specs/001-governance-parity/plan.md` Phase 4 step 3
+(the human decides; the agent may act as scribe afterwards).
+The git author of the recording commits is therefore the agent; the decision is the
+maintainer's.
+This transition is RFC-002 section 3 informal verification (`draft -> active`), not the
+formal `active -> canonical` gate, which has not been exercised for these documents.
+Scope note: ADR-0007's acceptance was a separate decision confirmed in the same
+sitting and is recorded in ADR-0007 itself; this artifact's filename carries its
+preparation date (2026-07-19), the decision date is 2026-07-22.
 
 Canonical readiness was neither proposed nor granted: each ADR seasons as `active`
 pending the Phase 4 hardening pass and at least one more consuming change, per the

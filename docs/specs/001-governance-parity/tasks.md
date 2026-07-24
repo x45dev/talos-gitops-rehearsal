@@ -1,11 +1,13 @@
 ---
 id: tasks-001-governance-parity
 title: Task list - governance parity
-status: draft
-version: 0.1.0
-date: 2026-07-19
+status: archived
+version: 0.2.0
+date: 2026-07-24
 type: tasks
 ---
+
+> **Archived 2026-07-24** with the bundle; see `spec.md` for the Extraction record.
 
 # Tasks: Governance parity
 
@@ -117,4 +119,7 @@ task. Paths are repo-relative in `kind-talos-gitops` unless prefixed.
 - **T017**: progress.md: validator no-op removed from known issues; parity recorded under What works.
 - **T018**: Acceptance criteria verified (validator green, gate bites, ADR-0007 present as proposed, evidence artifact present with empty decision block).
 
-**Pending human:** the ADR-0003..0006 promotion decision (evidence artifact decision block) and ADR-0007 acceptance (adr_status proposed -> accepted).
+**Pending human - resolved 2026-07-22:** the ADR-0003..0006 promotion was approved (see the
+evidence artifact's Outcome section) and ADR-0007 acceptance recorded
+(`adr_status: accepted`); both decided by the maintainer with the agent as scribe.
+No pending items remain; bundle archived 2026-07-24.

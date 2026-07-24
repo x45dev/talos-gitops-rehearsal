@@ -96,11 +96,12 @@ than on a re-runnable, measured, self-verifying pipeline.
 ## Acceptance criteria
 
 1. **Idempotent re-run (mechanical)**: from a converged environment, a second `all` run reports every
-   `kubectl apply` as `unchanged` (zero `configured`/`created` lines), performs no cluster re-create and
-   no Cilium re-install (the adoption path is skipped), and exits 0 with no errors; the accepted
-   idempotent-by-overwrite external writes (FR1) are exempt. As a corroborating signal the second run
-   completes in well under half the cold-run wall time. Proven twice in a row, both no-op transcripts
-   saved.
+   `kubectl apply` issued by the imperative `test-talos-spike` chain as `unchanged` (zero
+   `configured`/`created` lines), performs no cluster re-create and no Cilium re-install (the adoption
+   path is skipped), and exits 0 with no errors; the Flux-owned payload is checked by its `Ready`
+   conditions staying satisfied, not by apply output, and the accepted idempotent-by-overwrite external
+   writes (FR1) are exempt. As a corroborating signal the second run completes in well under half the
+   cold-run wall time. Proven twice in a row, both no-op transcripts saved.
 2. **Zero-residue teardown, verified**: after `teardown`, an automated check reports zero cluster Docker
    containers/volumes/networks and zero config residue in repo-local and user-global kube/talos config
    and the `talosctl` state directory; a deliberately seeded residual artifact makes the check fail.

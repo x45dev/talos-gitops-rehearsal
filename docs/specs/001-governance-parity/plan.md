@@ -1,11 +1,13 @@
 ---
 id: plan-001-governance-parity
 title: Implementation plan - governance parity
-status: draft
-version: 0.1.0
-date: 2026-07-19
+status: archived
+version: 0.2.0
+date: 2026-07-24
 type: plan
 ---
+
+> **Archived 2026-07-24** with the bundle; see `spec.md` for the Extraction record.
 
 # Implementation Plan: Governance parity
 

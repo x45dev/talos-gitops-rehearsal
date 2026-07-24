@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.6
+version: 0.1.7
 date: 2026-07-22
 type: context
 ---
@@ -64,7 +64,7 @@ migrates into `knowledge/specs/` and is retired (see `progress.md`).
       present and rule-current with `rka-template` v0.4.0 (rules 1-7), and the
       `lint:frontmatter` gate hard-fails when it is missing rather than
       no-opping.
-      Confirmed green (11 files) by the 2026-07-22 survey.
+      Confirmed green (12 files as of ADR-0008; count re-verified 2026-07-24).
 - [x] **Adopt release-pinned upstream tracking** (ecosystem review R1):
       recorded in `knowledge/context.md` (System patterns) and in the survey
       note above.
