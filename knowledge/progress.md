@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.6
+version: 0.1.7
 date: 2026-07-22
 type: context
 ---
@@ -32,8 +32,9 @@ phased-status section, and the review's survey of this repo.
 - Load-bearing pins recorded with rationale: Cilium 1.18.11 (ADR-0002,
   1.19.x breaks host-network DNS on Talos 1.13), Flux 2.9.0.
 - Frontmatter gate restored and rule-current: `scripts/validate-frontmatter.sh`
-  matches `rka-template` v0.4.0 (rules 1-7) and passes green on all 11 governed
-  documents; the `lint:frontmatter` task hard-fails if the script goes missing.
+  matches `rka-template` v0.4.0 (rules 1-7) and passes green on all 12 governed
+  documents (count as of ADR-0008); the `lint:frontmatter` task hard-fails if
+  the script goes missing.
 - Upstream conventions verified current (2026-07-22 survey): the released
   RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
   The RKA ADR-0013 spec-lifecycle gate (validator rules 8 and 9) is pending a
@@ -60,10 +61,12 @@ phased-status section, and the review's survey of this repo.
 - Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
   they should season as `active` through the Phase 4 hardening pass and at
   least one more consuming change before an evidence-backed canonical review.
-- Retire the completed `docs/specs/001-governance-parity/` bundle once the
-  RKA ADR-0013 spec-lifecycle gate ships in a tagged `rka-template` release:
-  migrate it into `knowledge/specs/`, add an extraction record, set
-  `status: archived`.
+- Migrate the archived `docs/specs/001-governance-parity/` bundle into a
+  governed `knowledge/specs/` bundle once the RKA ADR-0013 spec-lifecycle gate
+  ships in a tagged `rka-template` release.
+  The bundle itself was retired 2026-07-24 (ungoverned archival with an
+  extraction record in its `spec.md`); only the governed migration waits on
+  ADR-0013.
 
 ## Known issues / limitations
 
