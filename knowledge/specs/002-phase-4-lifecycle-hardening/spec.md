@@ -2,16 +2,18 @@
 id: spec-002-phase-4-lifecycle-hardening
 title: Phase 4 - lifecycle and idempotency hardening
 status: draft
-version: 0.2.0
+version: 0.2.1
 date: 2026-07-25
 type: spec
 ---
 
 # Feature Specification: Phase 4 - lifecycle and idempotency hardening
 
-> **Amended 2026-07-25 (v0.2.0), maintainer decision.** The spin-up measurement and budget workstream
-> (FR3, FR4, AC3) is withdrawn to non-goals: measured against real daily use, spin-up time is not a
-> problem, so instrumenting it would defend a metric that is not hurting anyone.
+> **Amended 2026-07-25 (v0.2.0, reconciled v0.2.1), maintainer decision.** The spin-up measurement and budget workstream
+> (FR3, FR4, AC3) is withdrawn to non-goals: the maintainer reports spin-up time has not been painful in
+> daily use, so building the harness was judged not worth its cost right now.
+> That report is an impression, not a measurement, and the trade-off is real: see `plan.md`'s
+> "Descope regret" risk, and the orphaned-commitment note in the non-goal below.
 > What remains is the half that enforces constitution invariants 3 and 4, which nothing currently
 > proves: end-to-end idempotency (FR1), self-verifying zero-residue teardown (FR2), and the day-2 Cilium
 > record (FR5).
@@ -40,14 +42,14 @@ are only partially met:
   containers/volumes/networks and zero config residue (no context in `~/.kube/config` or
   `~/.talos/config`, no leftover `talosctl` state directory). Today teardown performs the destroy but
   does not verify the invariant.
-- **Spin-up time is unmeasured against its target.** PRD Success Metric 1 is under 10 minutes from `mise`
-  command to every payload `HelmRelease`/`Kustomization` reporting `Ready`. Only a Phase 0 baseline
-  exists (cluster + Cilium + gates, ~5-6 min); the full Flux-driven payload has not been measured, and
-  the plan flags the Flux-sequenced components (cert-manager, Dex, Cloudflare Tunnel) as the likely
-  blowout stages.
+- **Spin-up time is unmeasured against its target** (context only; withdrawn 2026-07-25, see non-goals).
+  PRD Success Metric 1 is under 10 minutes from `mise` command to every payload
+  `HelmRelease`/`Kustomization` reporting `Ready`. Only a Phase 0 baseline exists (cluster + Cilium +
+  gates, ~5-6 min); the full Flux-driven payload has not been measured. This feature no longer closes
+  that gap.
 
 Until this feature lands, the environment works but its lifecycle guarantees rest on assertion rather
-than on a re-runnable, measured, self-verifying pipeline.
+than on a re-runnable, self-verifying pipeline.
 
 ## User stories
 
@@ -57,9 +59,9 @@ than on a re-runnable, measured, self-verifying pipeline.
 - **US2 - Developer, clean teardown**: As the developer, teardown destroys the cluster and then proves it
   left zero residue (containers, volumes, networks, and user-global kube/talos config), so a later
   `setup` starts from a genuinely clean slate and my workstation does not accumulate cruft across cycles.
-- **US3 - Maintainer, measured spin-up**: As the maintainer, spin-up time is measured per stage against
-  the under-10-minute target and recorded as a budget, so a regression or a blowout stage is visible as
-  data rather than a vague slowdown, and the named levers can be applied deliberately.
+- **US3 - Withdrawn 2026-07-25** (maintainer, measured spin-up). The story it served - a regression being
+  visible as data rather than a vague slowdown - is genuinely given up by this descope, not satisfied
+  another way. Retained here, struck, so the cost stays visible.
 
 ## Functional requirements
 
@@ -89,16 +91,27 @@ than on a re-runnable, measured, self-verifying pipeline.
 ## Non-goals (scoped out, with reasons)
 
 - **Spin-up measurement and budget (former FR3/FR4), scoped out 2026-07-25.** The maintainer reports
-  that spin-up time has not been a problem in real daily use, so building a measurement harness and a
-  committed budget would defend a metric that is not hurting anyone.
-  This is evidence from use, which outranks the 2026-07-05 plan's assumption that the Flux-sequenced
-  payload would be a bottleneck worth policing.
-  The PRD's under-ten-minute success metric is unchanged and unrenegotiated: it is simply not being
-  actively instrumented, and no claim is made that the target is currently met or missed.
+  that spin-up time has not been painful in real daily use, so the harness and committed budget are
+  judged not worth their cost right now.
+  That is a user's impression rather than a measurement, and it is weighed against the 2026-07-05 plan's
+  own assumption (untested) that the Flux-sequenced payload would be the blowout stage: neither side of
+  that call rests on data, which is precisely why the decision is the maintainer's and is recorded here.
+  The PRD's under-ten-minute success metric is not renegotiated by this spec, but it is left
+  uninstrumented, so no one can say whether it is met.
+  That is a weaker position than PRD Section 7 intends, and it is named rather than glossed (see the
+  orphaned-commitment note below).
   **Revisit trigger:** a spin-up that becomes noticeable in daily use, a payload component whose
   readiness visibly dominates, or a cloud (CAPA) milestone where the timing carries over.
-  If the measurement task is built opportunistically it is welcome, but it is not required for this
-  feature to be done.
+  The measurement task is not to be built as part of this feature; building it needs an owner decision
+  (see T015), so `spec.md` and `tasks.md` agree rather than leaving an agent to choose.
+
+  **Orphaned commitment, stated plainly.** `docs/planning/PRD.md` Section 7 names *the plan's Phase 4* as
+  the carrier of the per-stage budget and says the metric is "renegotiated explicitly (scope or number),
+  never silently missed"; `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` Phase 4 item 3 assigns
+  the same work; and `knowledge/constitution.md`'s effective definition of done lists the under-ten-minute
+  metric. Withdrawing the workstream leaves that commitment carried by nothing, which is the state PRD
+  Section 7 forbids. This spec does not resolve that on the maintainer's behalf: T015 is a HUMAN task to
+  decide between amending the PRD/PLAN or recording an ADR that accepts an uninstrumented metric.
 - **Phase 5 (YubiKey hardening)** and **Milestone M-CAPI (real cloud target)**: deferred by design
   (constitution non-goals; PLAN Phase 5 / M-CAPI). This spec is v1 lifecycle hardening only.
 - **State persistence / data re-hydration across ephemeral cycles**: the constitution's standing open
@@ -115,8 +128,11 @@ than on a re-runnable, measured, self-verifying pipeline.
    `configured`/`created` lines), performs no cluster re-create and no Cilium re-install (the adoption
    path is skipped), and exits 0 with no errors; the Flux-owned payload is checked by its `Ready`
    conditions staying satisfied, not by apply output, and the accepted idempotent-by-overwrite external
-   writes (FR1) are exempt. As a corroborating signal the second run completes in well under half the
-   cold-run wall time. Proven twice in a row, both no-op transcripts saved.
+   writes (FR1) are exempt. Also exempt: the `git-credentials` secret, whose `known_hosts` is rebuilt from a
+   live `api.github.com/meta` fetch on every run, so GitHub rotating or reordering its published keys can
+   report `configured` with no idempotency defect present. Proven twice in a row, both no-op transcripts
+   saved. (Wall-time comparison is deliberately not part of this criterion: the stage timing it would
+   need is the withdrawn workstream.)
 2. **Zero-residue teardown, verified**: after `teardown`, an automated check reports zero cluster Docker
    containers/volumes/networks and zero config residue in repo-local and user-global kube/talos config
    and the `talosctl` state directory; a deliberately seeded residual artifact makes the check fail.
@@ -129,9 +145,8 @@ than on a re-runnable, measured, self-verifying pipeline.
 
 ## Open questions
 
-- **Where the spin-up budget lives.** Options: a committed metrics note under `docs/`, a section in the
-  plan, or a generated artifact from the measurement task. To decide in `plan.md`; it must be committed
-  and reproducible, not a one-off console reading.
+- **Where the spin-up budget lives - moot 2026-07-25.** Resolved by withdrawal, not by an answer: there
+  is no budget to place. `plan.md` retains the shape that was recommended, for the revisit.
 - **Execution environment.** These acceptance criteria require a host with Docker and the full `mise`
   toolchain (talosctl, flux, helm, kubectl); the criteria are verified on that host, not in a
   docs-only or toolchain-less environment.

@@ -58,13 +58,24 @@ jobs:
       - name: Validate knowledge frontmatter
         run: scripts/validate-frontmatter.sh knowledge
 
-      # --fix is deliberately NOT passed: CI checks, it does not mutate. The local
-      # lint task autofixes; here a violation must fail rather than be silently
-      # repaired in an ephemeral checkout.
+      # NOTE: .config/markdownlint/config.yaml sets `fix: true`, so markdownlint
+      # repairs in place whether or not --fix is passed on the command line. In an
+      # ephemeral CI checkout that would mean a violation is silently repaired and
+      # the job passes green - the gate would report nothing. The diff check in the
+      # next step is what actually makes this a gate: if the linter had to change a
+      # file, the commit was not clean and CI fails.
       - name: Lint markdown
         run: |
           npx --yes markdownlint-cli2 --config .config/markdownlint/config.yaml \
             "**/*.md" "#.git" "#node_modules" "#.claude"
+
+      - name: Fail if markdownlint had to fix anything
+        run: |
+          if ! git diff --exit-code -- '*.md'; then
+            echo "::error::markdownlint auto-fixed the files above; run 'mise run lint' and commit the result"
+            exit 1
+          fi
+          echo "Markdown was already clean."
 
       # The repo's one mechanically-enforced prose rule (.config/vale/styles/RKA/
       # NoEmDash.yml). Checked with grep rather than by installing vale, since
