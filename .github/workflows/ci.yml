@@ -1,0 +1,86 @@
+# Governance and documentation gate.
+#
+# WHY THIS EXISTS: every quality gate in this repo (frontmatter validation, prose
+# and markdown linting, the secrets guards) runs only in the local Lefthook
+# pre-commit hook. Any commit made from an environment without the mise toolchain
+# - a cloud agent session, a fresh clone, a quick web edit - reaches main
+# completely ungated. This workflow closes that hole for the checks that need no
+# cluster.
+#
+# WHY NOT `mise run lint`: .config/mise/config.toml sets sops.strict = true and
+# loads .config/mise/.env.sops.yaml, so *any* `mise run` tries to decrypt the
+# project secrets and fails loudly without the AGE key. Giving CI that key would
+# put the project's decryption key in GitHub, which the "zero plaintext" invariant
+# rules out. So this workflow installs only the few tools the governance gates
+# need and calls them directly. The trade-off: it covers a subset of
+# `mise run lint` (frontmatter, markdown, em-dash, shell), not vale's full config
+# or the lychee link check, both of which stay local.
+#
+# SCOPE: no cluster tests. The test-talos-spike chain needs Docker, talosctl and a
+# real Talos cluster; it is a local/host concern and is deliberately out of scope
+# here (see knowledge/specs/002-phase-4-lifecycle-hardening/ for that work).
+name: CI
+
+# Runs on PRs as well as pushes to main: a governance gate that only fires after
+# merge reports breakage that is already on the trunk. Merge-only was considered
+# and rejected for that reason.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: Governance and docs gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # yq and jq are what scripts/validate-frontmatter.sh needs. jq ships on the
+      # runner; yq does not. The validator probes the yq flavor at runtime, so
+      # either the Go or the Python implementation works - this installs the Go
+      # one that mise pins locally, keeping CI and local behaviour aligned.
+      - name: Install yq
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+          jq --version
+
+      # The RKA gate: six-field frontmatter, legal statuses, unique ids, the
+      # id/filename convention, adr_status, the constitution, bundle-index
+      # integrity (rule 7), the extraction record on archival (rule 8), and the
+      # spec-bundle lifecycle rules (9a, 9b).
+      - name: Validate knowledge frontmatter
+        run: scripts/validate-frontmatter.sh knowledge
+
+      # --fix is deliberately NOT passed: CI checks, it does not mutate. The local
+      # lint task autofixes; here a violation must fail rather than be silently
+      # repaired in an ephemeral checkout.
+      - name: Lint markdown
+        run: |
+          npx --yes markdownlint-cli2 --config .config/markdownlint/config.yaml \
+            "**/*.md" "#.git" "#node_modules" "#.claude"
+
+      # The repo's one mechanically-enforced prose rule (.config/vale/styles/RKA/
+      # NoEmDash.yml). Checked with grep rather than by installing vale, since
+      # NoEmDash is currently the only rule in the RKA style.
+      - name: Check for em dashes
+        run: |
+          if grep -rn '—' --include='*.md' . | grep -v '^./.git/'; then
+            echo "::error::em dash found; this project uses hyphens (vale RKA.NoEmDash)"
+            exit 1
+          fi
+          echo "No em dashes found."
+
+      # shellcheck ships on the runner. shfmt does not, and its local task runs in
+      # write mode, so formatting stays a local pre-commit concern.
+      - name: Shellcheck
+        run: |
+          mapfile -t sh_files < <(find . -type f -name '*.sh' -not -path './.git/*')
+          if [ ${#sh_files[@]} -eq 0 ]; then echo "No shell scripts."; exit 0; fi
+          shellcheck "${sh_files[@]}"
