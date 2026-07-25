@@ -2,8 +2,8 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.8
-date: 2026-07-24
+version: 0.1.9
+date: 2026-07-25
 type: context
 ---
 
@@ -87,8 +87,18 @@ in `knowledge/progress.md`.
       rules 8/9a/9b ported and each proven to fail by seeded violation; both
       spec bundles migrated to `knowledge/specs/`; recorded in ADR-0009.
       Validator green on 19 governed documents.
-- [ ] **Promote ADR-0008 and ADR-0009** (`draft`, `adr_status: accepted`) from
-      `draft` to `active` when convenient; both record in-force decisions.
+- [x] **Add the bundle index** (2026-07-25): `knowledge/index.md` now enumerates
+      all 19 governed documents, activating validator rule 7 (bundle-index
+      integrity), which was latent while no index existed.
+      Both halves proven by seeded violation (an unlisted governed document, and
+      an entry that does not resolve).
+      The index is OKF bundle structure, not governed knowledge: no RKA
+      frontmatter, no `status`.
+      Adding or removing a governed document now requires updating it.
+- [x] **Promote ADR-0008** to `active` (2026-07-25): the PRD-handling decision
+      has seasoned since 2026-07-22 and is in force.
+- [ ] **Promote ADR-0009** (`draft`, `adr_status: accepted`) to `active` once it
+      has seasoned; it was recorded 2026-07-24 and is in force.
       Canonical promotion of the `active` ADRs remains a later gate (season
       through Phase 4).
 - [ ] **Reconcile the ported validator** against the released one when a tagged
