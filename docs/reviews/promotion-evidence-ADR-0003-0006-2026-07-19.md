@@ -4,7 +4,7 @@ Uninducted working material - the in-repo formal-review record RFC-002 section 4
 requires before a status change on governed documents. Second exercise of the RKA
 promotion gate in this repository (first: ADR-0001/0002, 2026-07-13, see
 `promotion-evidence-ADR-0001-0002-2026-07-13.md`). Prepared as part of the
-governance-parity feature (`docs/specs/001-governance-parity/`).
+governance-parity feature (`knowledge/specs/001-governance-parity/`).
 
 ## Proposer and reviewer
 
@@ -154,7 +154,7 @@ before recording.
 the promotions by directive in the working session and, when explicitly re-asked
 per-decision, confirmed each one ("Confirm -> active" for this batch).
 The agent then performed the status edits and authored this Outcome section as scribe,
-per the scribe provision in `docs/specs/001-governance-parity/plan.md` Phase 4 step 3
+per the scribe provision in `knowledge/specs/001-governance-parity/plan.md` Phase 4 step 3
 (the human decides; the agent may act as scribe afterwards).
 The git author of the recording commits is therefore the agent; the decision is the
 maintainer's.

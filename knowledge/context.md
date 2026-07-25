@@ -2,8 +2,8 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: active
-version: 0.2.3
-date: 2026-07-22
+version: 0.2.4
+date: 2026-07-24
 type: context
 ---
 
@@ -118,9 +118,17 @@ application-overlay carry over, the provisioning substrate does not
   upstream HEAD (RKA ADR-0012 release trains).
   The current pin is `rka-template` v0.4.0 (verified 2026-07-22), and the
   `devbase` image is digest-pinned in `.devcontainer/Dockerfile`.
-  A newer upstream convention (RKA ADR-0013 spec-bundle lifecycle, validator
-  rules 8 and 9) is deliberately not adopted until it ships in a tagged
-  `rka-template` release (see `activeContext.md` upstream-tracking note).
+  One scoped exception stands: the RKA ADR-0013 spec-bundle lifecycle (validator
+  rules 8, 9a, 9b) was adopted early on 2026-07-24 by maintainer decision, ahead
+  of any `rka-template` release carrying it, because this repo was the upstream
+  rules' motivating example (ADR-0009).
+  The exception is scoped to ADR-0013 alone and carries a reconciliation
+  obligation at the next release that ships those rules; ADR-0012 governs
+  everything else.
+- **Governed feature specs.** Feature specs live as governed bundles under
+  `knowledge/specs/<NNN>-<slug>/` with `<role>-<NNN>-<slug>` ids, one shared
+  `status` per bundle, and an `Extraction record` on archival (RKA ADR-0013 via
+  ADR-0009). `docs/specs/` no longer exists.
 
 ## Known accepted gaps (v1, not solved by design)
 

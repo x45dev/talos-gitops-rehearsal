@@ -11,9 +11,8 @@ type: spec
 > the pending human decisions were recorded on 2026-07-22, so this bundle is retired
 > rather than left `draft` (a completed spec's status must be advanced, per the
 > spec-driven-work guidance). See the Extraction record at the end of this file.
-> This is an ungoverned retirement under `docs/specs/`; migration into a governed
-> `knowledge/specs/` bundle waits for RKA ADR-0013 shipping in a tagged `rka-template`
-> release (ADR-0012).
+> Migrated into the governed `knowledge/specs/` bundle model on 2026-07-24 when this
+> repo adopted RKA ADR-0013 early (see ADR-0009); this is now a governed retirement.
 
 # Feature Specification: Governance parity
 
@@ -148,8 +147,9 @@ claims to practise, and its scope remains implicit.
   `accepted` in the same review that adjudicates the promotion-evidence artifact. Either
   satisfies AC3.
 
-## Extraction record (2026-07-24)
+## Extraction record
 
+Recorded 2026-07-24.
 Durable knowledge from this bundle already lives in the governed knowledge base and the
 repo's standing artifacts; nothing else required extraction at archival:
 

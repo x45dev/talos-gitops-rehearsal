@@ -2,8 +2,8 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.7
-date: 2026-07-22
+version: 0.1.8
+date: 2026-07-24
 type: context
 ---
 
@@ -31,14 +31,17 @@ phased-status section, and the review's survey of this repo.
   (2026-07-13), with the promotion evidence retained in `docs/reviews/`.
 - Load-bearing pins recorded with rationale: Cilium 1.18.11 (ADR-0002,
   1.19.x breaks host-network DNS on Talos 1.13), Flux 2.9.0.
-- Frontmatter gate restored and rule-current: `scripts/validate-frontmatter.sh`
-  matches `rka-template` v0.4.0 (rules 1-7) and passes green on all 12 governed
-  documents (count as of ADR-0008); the `lint:frontmatter` task hard-fails if
-  the script goes missing.
+- Frontmatter gate restored and extended: `scripts/validate-frontmatter.sh`
+  carries the `rka-template` v0.4.0 rules 1-7 plus the ADR-0013 rules 8, 9a and
+  9b (ported early per ADR-0009), and passes green on all 19 governed documents;
+  the `lint:frontmatter` task hard-fails if the script goes missing.
 - Upstream conventions verified current (2026-07-22 survey): the released
   RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
-  The RKA ADR-0013 spec-lifecycle gate (validator rules 8 and 9) is pending a
-  tagged `rka-template` release before adoption (see `activeContext.md`).
+- Spec-lifecycle gate live (2026-07-24, ADR-0009): feature specs are governed
+  bundles under `knowledge/specs/<NNN>-<slug>/`, and the validator now fails a
+  bundle whose tasks are all complete but is not `archived` (9b), a bundle with
+  mixed statuses (9a), or an archived document with no `Extraction record` (8).
+  All three were proven to fail by seeded violation before landing.
 - Second RKA lifecycle pass (2026-07-22): ADR-0003 through ADR-0006 promoted
   `draft -> active` on re-verified evidence (`docs/reviews/`), ADR-0007 accepted
   (`adr_status: accepted`, `active`) settling the scope-identity decision, and
@@ -56,17 +59,14 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- Promote ADR-0008 (`draft`, `adr_status: accepted`) from `draft` to `active`
-  when convenient; it records an in-force decision.
+- Promote ADR-0008 and ADR-0009 (`draft`, `adr_status: accepted`) from `draft`
+  to `active` when convenient; both record in-force decisions.
 - Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
   they should season as `active` through the Phase 4 hardening pass and at
   least one more consuming change before an evidence-backed canonical review.
-- Migrate the archived `docs/specs/001-governance-parity/` bundle into a
-  governed `knowledge/specs/` bundle once the RKA ADR-0013 spec-lifecycle gate
-  ships in a tagged `rka-template` release.
-  The bundle itself was retired 2026-07-24 (ungoverned archival with an
-  extraction record in its `spec.md`); only the governed migration waits on
-  ADR-0013.
+- Reconcile the early-ported validator rules 8/9 against the released version
+  when a tagged `rka-template` release ships them, and record any divergence
+  here (ADR-0009's standing obligation).
 
 ## Known issues / limitations
 

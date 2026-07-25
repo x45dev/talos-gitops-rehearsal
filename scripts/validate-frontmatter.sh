@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Validate RKA frontmatter for all knowledge/**/*.md files.
-# Rules (RFC-003 sections 3, 4, 5 and 8):
+# Rules (RFC-003 sections 3, 4, 5 and 8; RFC-002 section 3):
 #   1. All six required fields present and non-empty: id, title, status, version,
 #      date, type (type is OKF's one required field).
 #   2. status is one of: draft, active, canonical, archived
@@ -11,6 +11,10 @@ set -euo pipefail
 #      - ADRs (knowledge/adr/): id is ADR-NNNN (4 digits, no slug); filename is
 #        ADR-NNNN.md or ADR-NNNN-<kebab-slug>.md; the leading ADR-NNNN token of
 #        the filename stem must equal the id.
+#      - Spec bundles (knowledge/specs/<NNN>-<slug>/): the filename is the
+#        document's role (spec.md, plan.md, tasks.md) and the id is
+#        <role>-<NNN>-<slug>, because a bundle's documents cannot all share one
+#        stem.
 #      - Every other governed document: id must equal the filename stem.
 #   5. adr_status: every document under knowledge/adr/ must carry adr_status,
 #      one of proposed, accepted, superseded.
@@ -18,8 +22,23 @@ set -euo pipefail
 #      id "constitution", the one mandatory artifact.
 #   7. bundle-index integrity: knowledge/index.md is optional, but WHEN PRESENT
 #      it must list every governed document and every entry must resolve.
+#   8. extraction record on archival (RFC-002 section 3): a document at status
+#      "archived" must carry a heading titled "Extraction record". Archival
+#      without extraction is knowledge loss. Inside a spec bundle only spec.md
+#      carries the record for the whole bundle.
+#   9. spec bundle lifecycle (RFC-003 sections 4, 5):
+#      9a. every governed document in one spec bundle carries the same status; a
+#          bundle has a single lifecycle.
+#      9b. a bundle whose tasks.md holds at least one checkbox and no unchecked
+#          checkbox must be archived. This catches a shipped feature whose spec
+#          was never retired and whose knowledge was never extracted.
+# Rules 8 and 9 are the ADR-0013 spec-lifecycle gate, adopted early from the RKA
+# reference repo by recorded maintainer decision (this repo's ADR-0009); when a
+# tagged rka-template release ships them, reconcile this script against the
+# released one and note any divergence in knowledge/progress.md.
 # The reserved OKF bundle-structure files (index.md, log.md) are not governed
-# documents: they are excluded from rules 1-6 and validated only by rule 7.
+# documents: they are excluded from rules 1-6 and 8-9 and validated only by
+# rule 7.
 # Reports every error before exiting non-zero, so one run surfaces all problems
 # rather than failing on the first.
 # NOTE (template maintainers): this file is rendered by Copier with default
@@ -31,9 +50,12 @@ KNOWLEDGE_DIR="${1:-knowledge}"
 REQUIRED_FIELDS=("id" "title" "status" "version" "date" "type")
 LEGAL_STATUSES=("draft" "active" "canonical" "archived")
 LEGAL_ADR_STATUSES=("proposed" "accepted" "superseded")
+SPEC_ROLES=("spec" "plan" "tasks")
 
 errors=0
 declare -A id_to_file
+declare -A bundle_statuses
+declare -A bundle_tasks_file
 file_count=0
 governed_rel=()
 governed_count=0
@@ -83,6 +105,26 @@ while IFS= read -r -d '' file; do
   rel="${rel/#"$KNOWLEDGE_DIR"\//}"
   governed_rel+=("$rel")
   governed_count=$((governed_count + 1))
+
+  # A spec bundle is knowledge/specs/<NNN>-<slug>/<role>.md (RFC-003 sections
+  # 4, 5).
+  spec_bundle=""
+  spec_role=""
+  if [[ "$rel" =~ ^specs/([^/]+)/([^/]+)\.md$ ]]; then
+    spec_bundle="${BASH_REMATCH[1]}"
+    spec_role="${BASH_REMATCH[2]}"
+    valid_role=false
+    for r in "${SPEC_ROLES[@]}"; do
+      [[ "$spec_role" == "$r" ]] && valid_role=true && break
+    done
+    if [[ "$valid_role" == false ]]; then
+      printf 'ERROR: %s: "%s.md" is not a known spec-bundle role (must be one of: spec, plan, tasks) per RFC-003 section 5\n' \
+        "$file" "$spec_role" >&2
+      errors=$((errors + 1))
+    fi
+    [[ "$spec_role" == "tasks" ]] && bundle_tasks_file["$spec_bundle"]="$file"
+  fi
+
   block=$(extract_frontmatter "$file")
   if [[ -z "$block" ]]; then
     # No frontmatter at all: fall through so every required field is reported
@@ -116,6 +158,23 @@ while IFS= read -r -d '' file; do
     if [[ "$valid_status" == false ]]; then
       printf 'ERROR: %s: invalid status "%s" (must be one of: draft, active, canonical, archived)\n' \
         "$file" "$status" >&2
+      errors=$((errors + 1))
+    fi
+  fi
+
+  if [[ -n "$spec_bundle" && -n "$status" && "$status" != "null" ]]; then
+    bundle_statuses["$spec_bundle"]="${bundle_statuses[$spec_bundle]:-} $status"
+  fi
+
+  # Rule 8: an archived document must carry its extraction record (RFC-002
+  # section 3). Within a spec bundle the record lives once, in spec.md, and
+  # covers the bundle.
+  if [[ "$status" == "archived" ]]; then
+    if [[ -n "$spec_bundle" && "$spec_role" != "spec" ]]; then
+      :
+    elif ! grep -qiE '^#{1,6}[[:space:]]+extraction record[[:space:]]*$' "$file"; then
+      printf 'ERROR: %s: archived document has no "Extraction record" section (RFC-002 section 3, PRD FR5.2)\n' \
+        "$file" >&2
       errors=$((errors + 1))
     fi
   fi
@@ -171,6 +230,15 @@ while IFS= read -r -d '' file; do
           errors=$((errors + 1))
         fi
       fi
+    elif [[ -n "$spec_bundle" ]]; then
+      # A bundle's documents share a directory, so the filename carries the
+      # role and the id carries role plus bundle (RFC-003 section 5).
+      expected_id="$spec_role-$spec_bundle"
+      if [[ "$id" != "$expected_id" ]]; then
+        printf 'ERROR: %s: spec-bundle id must be "%s" (got "%s") per RFC-003 section 5\n' \
+          "$file" "$expected_id" "$id" >&2
+        errors=$((errors + 1))
+      fi
     else
       if [[ "$stem" != "$id" ]]; then
         printf 'ERROR: %s: id "%s" does not match filename stem "%s"\n' \
@@ -180,6 +248,38 @@ while IFS= read -r -d '' file; do
     fi
   fi
 done < <(find "$KNOWLEDGE_DIR" -name "*.md" -print0 | sort -z)
+
+# Rule 9a: a spec bundle has one lifecycle, so its documents share a status
+# (RFC-003 sections 4, 5).
+for bundle in "${!bundle_statuses[@]}"; do
+  read -ra bundle_status_list <<< "${bundle_statuses[$bundle]}"
+  distinct=$(printf '%s\n' "${bundle_status_list[@]}" | sort -u)
+  if (($(printf '%s\n' "$distinct" | wc -l) > 1)); then
+    printf 'ERROR: %s/specs/%s: spec bundle has mixed status values (%s); a bundle shares one lifecycle (RFC-003 section 4)\n' \
+      "$KNOWLEDGE_DIR" "$bundle" "$(printf '%s' "$distinct" | tr '\n' ' ' | sed 's/ $//')" >&2
+    errors=$((errors + 1))
+  fi
+done
+
+# Rule 9b: a spec bundle whose tasks are all complete must be archived
+# (RFC-002 section 3). A bundle with no tasks.md, or a tasks.md carrying no
+# checkboxes, is out of scope: tasks.md is optional.
+for bundle in "${!bundle_tasks_file[@]}"; do
+  tasks_file="${bundle_tasks_file[$bundle]}"
+  total=$(grep -cE '^[[:space:]]*[-*][[:space:]]+\[[ xX]\]' "$tasks_file" || true)
+  ((total == 0)) && continue
+  open=$(grep -cE '^[[:space:]]*[-*][[:space:]]+\[[[:space:]]\]' "$tasks_file" || true)
+  ((open > 0)) && continue
+  read -ra bundle_status_list <<< "${bundle_statuses[$bundle]:-}"
+  for s in "${bundle_status_list[@]}"; do
+    if [[ "$s" != "archived" ]]; then
+      printf 'ERROR: %s/specs/%s: all tasks complete but status is "%s"; a shipped spec is archived after extraction (RFC-002 section 3)\n' \
+        "$KNOWLEDGE_DIR" "$bundle" "$s" >&2
+      errors=$((errors + 1))
+      break
+    fi
+  done
+done
 
 # Rule 6: the mandatory constitution must be present.
 if [[ "$has_constitution" == false ]]; then
