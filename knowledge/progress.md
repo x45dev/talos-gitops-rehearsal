@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.9
+version: 0.1.10
 date: 2026-07-25
 type: context
 ---
@@ -37,6 +37,16 @@ phased-status section, and the review's survey of this repo.
   the `lint:frontmatter` task hard-fails if the script goes missing.
 - Upstream conventions verified current (2026-07-22 survey): the released
   RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
+- CI gate added (2026-07-25): `.github/workflows/ci.yml` re-runs the governance
+  and docs checks (frontmatter validator, markdownlint, em dash, shellcheck) on
+  pull requests and pushes to `main`.
+  Until now every gate lived only in the local Lefthook hook, so any commit made
+  without the `mise` toolchain (a cloud agent session, a fresh clone) reached
+  `main` ungated.
+  CI deliberately does not invoke `mise`: `sops.strict = true` means any
+  `mise run` tries to decrypt the project secrets, and giving CI the AGE key
+  would violate the zero-plaintext invariant.
+  No cluster tests run in CI.
 - Bundle index present (2026-07-25): `knowledge/index.md` enumerates all 19
   governed documents with descriptions, so an agent can load only what a task
   needs.

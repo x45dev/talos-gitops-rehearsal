@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **specs:** Complete the Phase 4 bundle with plan.md and tasks.md
 - **specs:** Reconcile Phase 4 bundle after gate-3 adversarial review
 - **governance:** Reconcile doubt-driven review findings on the session's work
+- **governance:** Add the bundle index and promote ADR-0008 to active
 
 ### Fixed
 
