@@ -2,12 +2,16 @@
 id: tasks-002-phase-4-lifecycle-hardening
 title: Task list - Phase 4 lifecycle hardening
 status: draft
-version: 0.1.0
-date: 2026-07-22
+version: 0.2.0
+date: 2026-07-25
 type: tasks
 ---
 
-# Tasks: Phase 4 - lifecycle, idempotency, and metrics hardening
+# Tasks: Phase 4 - lifecycle and idempotency hardening
+
+> **Amended 2026-07-25 (v0.2.0)** with `spec.md` v0.2.0: Phase C (T009-T011, spin-up measurement and
+> budget) is withdrawn. Task numbers are retained rather than renumbered so existing references stay
+> unambiguous. 10 live tasks remain.
 
 **Plan**: `knowledge/specs/002-phase-4-lifecycle-hardening/plan.md`. **HUMAN** marks a step only the owner
 may perform - a decision, not a mechanical action; the agent reaches it, stops, and surfaces what is
@@ -52,20 +56,14 @@ kubectl); a docs-only environment can author and review but cannot close them.
       arbitrarily-named artifact the name-anchored check ignores will not trip it), show the verify step
       fails; run a clean teardown, show it passes. Save both transcripts.
 
-## Phase C - Staged spin-up measurement and budget (FR3, FR4, AC3)
+## Phase C - Withdrawn 2026-07-25 (spin-up measurement and budget)
 
-- [ ] **T009** Add a measurement task that stamps stage boundaries (cluster create, Cilium ready, Flux
-      ready, payload all-`Ready`) and emits a per-stage timing record with a total, reproducible from a
-      clean `teardown`.
-- [ ] **T010** Run the measurement cold (from clean `teardown`) and commit the record as
-      `docs/reviews/phase-4-spinup-budget-<date>.md`, noting the image-cache assumption alongside the
-      numbers.
-- [ ] **T011** If the total exceeds 10 minutes, apply the FR4 levers in order and record which was used:
-      (1) host-side pull-through registry mirror via `talosctl cluster create` registry-mirror flags,
-      (2) relax `dependsOn` chains where safe, (3) **HUMAN - owner decision, do not perform
-      autonomously**: renegotiating the PRD Success Metric changes a committed requirement; the agent may
-      reach this point and stop with the measured overage, it does not renegotiate the metric itself.
-      If under target, record that no lever was needed.
+Withdrawn with FR3/FR4/AC3: spin-up time is not a problem in real use, so the measurement harness and
+committed budget are scoped out (`spec.md` non-goals, with the revisit trigger).
+T009, T010 and T011 are not to be executed; their numbers are retained, not reused.
+
+- [x] **T009-T011** Withdrawn, no action. The withdrawn design is retained in `plan.md` so a future
+      revisit is a lookup rather than a redesign.
 
 ## Phase D - Day-2 Cilium config-drift gap (FR5, AC5)
 
@@ -77,9 +75,9 @@ kubectl); a docs-only environment can author and review but cannot close them.
 
 ## Exit
 
-- [ ] **T013** Verify all five acceptance criteria in `spec.md`; attach the AC1 no-op transcripts, the
-      AC2 seeded-residual proof, the committed spin-up budget (AC3), the AC4 sleep-audit result, and the
-      AC5 decision/record as evidence in the PR description.
+- [ ] **T013** Verify the four live acceptance criteria in `spec.md` (AC3 is withdrawn); attach the AC1
+      no-op transcripts, the AC2 seeded-residual proof, the AC4 sleep-audit result, and the AC5
+      decision/record as evidence in the PR description.
 - [ ] **T014** Update the working state: `knowledge/progress.md` (Phase 4 under "What works", removing it
       from "What's left") and `knowledge/activeContext.md` (Phase 4 done; name the next focus). Governed
       docs, so a patch version bump each.

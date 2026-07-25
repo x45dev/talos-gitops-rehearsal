@@ -1,13 +1,22 @@
 ---
 id: spec-002-phase-4-lifecycle-hardening
-title: Phase 4 - lifecycle, idempotency, and metrics hardening
+title: Phase 4 - lifecycle and idempotency hardening
 status: draft
-version: 0.1.0
-date: 2026-07-22
+version: 0.2.0
+date: 2026-07-25
 type: spec
 ---
 
-# Feature Specification: Phase 4 - lifecycle, idempotency, and metrics hardening
+# Feature Specification: Phase 4 - lifecycle and idempotency hardening
+
+> **Amended 2026-07-25 (v0.2.0), maintainer decision.** The spin-up measurement and budget workstream
+> (FR3, FR4, AC3) is withdrawn to non-goals: measured against real daily use, spin-up time is not a
+> problem, so instrumenting it would defend a metric that is not hurting anyone.
+> What remains is the half that enforces constitution invariants 3 and 4, which nothing currently
+> proves: end-to-end idempotency (FR1), self-verifying zero-residue teardown (FR2), and the day-2 Cilium
+> record (FR5).
+> Withdrawn identifiers are retained rather than renumbered so existing references stay unambiguous.
+> The title dropped "metrics" to match.
 
 **Branch**: `002-phase-4-lifecycle-hardening` | **Created**: 2026-07-22 | **Status**: draft
 **Input**: `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` "Phase 4"; `docs/planning/PRD.md`
@@ -68,15 +77,10 @@ than on a re-runnable, measured, self-verifying pipeline.
   volumes, or networks remain for the cluster (including the `talosctl`-created network), and no cluster
   context remains in `~/.kube/config` or `~/.talos/config`, and no `talosctl` cluster-state directory
   remains. A residual artifact fails teardown loudly rather than passing silently.
-- **FR3 - Staged spin-up measurement and recorded budget.** Spin-up is measured from the `mise` command
-  to all-`Ready`, broken into stages (cluster create, Cilium ready, Flux ready, payload `Ready`), and the
-  per-stage timings are recorded as a committed baseline budget. The measurement is reproducible from a
-  clean `teardown`.
-- **FR4 - Budget-overrun levers, applied in order.** If the measured total exceeds 10 minutes, the named
-  levers are applied in order and the choice recorded: (1) a host-side pull-through registry mirror the
-  ephemeral nodes are configured to use via `talosctl cluster create` registry-mirror flags; (2) relaxing
-  `dependsOn` chains where safe; (3) only as a last resort, renegotiating the PRD metric explicitly
-  (scope or number), never silently missing it.
+- **FR3 - Withdrawn 2026-07-25** (staged spin-up measurement and recorded budget).
+  Moved to non-goals; see "Spin-up measurement and budget" below for the reason and the revisit trigger.
+  The number is retained rather than reused, so existing references stay unambiguous.
+- **FR4 - Withdrawn 2026-07-25** (budget-overrun levers). Moved to non-goals with FR3.
 - **FR5 - Close or record the day-2 Cilium config-drift gap.** The known limitation that agent-level
   Cilium flag changes have no Flux-side equivalent of the bootstrap task's unconditional `DaemonSet`
   restart is either closed (a reconciled mechanism) or re-recorded as an accepted, dated limitation with
@@ -84,6 +88,17 @@ than on a re-runnable, measured, self-verifying pipeline.
 
 ## Non-goals (scoped out, with reasons)
 
+- **Spin-up measurement and budget (former FR3/FR4), scoped out 2026-07-25.** The maintainer reports
+  that spin-up time has not been a problem in real daily use, so building a measurement harness and a
+  committed budget would defend a metric that is not hurting anyone.
+  This is evidence from use, which outranks the 2026-07-05 plan's assumption that the Flux-sequenced
+  payload would be a bottleneck worth policing.
+  The PRD's under-ten-minute success metric is unchanged and unrenegotiated: it is simply not being
+  actively instrumented, and no claim is made that the target is currently met or missed.
+  **Revisit trigger:** a spin-up that becomes noticeable in daily use, a payload component whose
+  readiness visibly dominates, or a cloud (CAPA) milestone where the timing carries over.
+  If the measurement task is built opportunistically it is welcome, but it is not required for this
+  feature to be done.
 - **Phase 5 (YubiKey hardening)** and **Milestone M-CAPI (real cloud target)**: deferred by design
   (constitution non-goals; PLAN Phase 5 / M-CAPI). This spec is v1 lifecycle hardening only.
 - **State persistence / data re-hydration across ephemeral cycles**: the constitution's standing open
@@ -105,9 +120,8 @@ than on a re-runnable, measured, self-verifying pipeline.
 2. **Zero-residue teardown, verified**: after `teardown`, an automated check reports zero cluster Docker
    containers/volumes/networks and zero config residue in repo-local and user-global kube/talos config
    and the `talosctl` state directory; a deliberately seeded residual artifact makes the check fail.
-3. **Recorded spin-up budget**: a committed per-stage timing record exists (cluster create, Cilium, Flux,
-   payload `Ready`) with a total, measured from a clean `teardown`; if over 10 minutes, the applied lever
-   (FR4) is recorded with it.
+3. **Withdrawn 2026-07-25** (recorded spin-up budget). Withdrawn with FR3/FR4; the number is retained
+   rather than reused so existing references stay unambiguous. Nothing is required for this criterion.
 4. **No sub-idempotency-bar sleeps**: a scan of the bootstrap tasks shows no fixed-duration sleep standing
    in for a precondition check; each wait is a retry-until-condition loop.
 5. **Day-2 Cilium gap resolved on the record**: FR5 is either implemented or the limitation is

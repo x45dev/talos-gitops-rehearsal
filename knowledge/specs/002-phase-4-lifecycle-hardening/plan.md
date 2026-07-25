@@ -2,12 +2,15 @@
 id: plan-002-phase-4-lifecycle-hardening
 title: Implementation plan - Phase 4 lifecycle hardening
 status: draft
-version: 0.1.0
-date: 2026-07-22
+version: 0.2.0
+date: 2026-07-25
 type: plan
 ---
 
-# Implementation Plan: Phase 4 - lifecycle, idempotency, and metrics hardening
+# Implementation Plan: Phase 4 - lifecycle and idempotency hardening
+
+> **Amended 2026-07-25 (v0.2.0)** with `spec.md` v0.2.0: Phase C (spin-up measurement and budget) is
+> withdrawn. Phases A, B and D stand unchanged.
 
 **Spec**: `knowledge/specs/002-phase-4-lifecycle-hardening/spec.md` | **Branch**: `002-phase-4-lifecycle-hardening`
 
@@ -18,7 +21,7 @@ type: plan
   install + agent restart), `cloudflare-tunnel-bootstrap` (create tunnel + inject token secret),
   `flux-bootstrap` (install Flux, inject secrets, hand Cilium day-2 to Git), `verify-adoption`,
   `validate` (the three gates), `verify-phase3`, `teardown`, and the `all` aggregate. Phase 4 hardens
-  this chain into a re-runnable, self-verifying, measured lifecycle; it does not add payload components.
+  this chain into a re-runnable, self-verifying lifecycle; it does not add payload components.
 - **Idempotency is partially there, not proven end to end.** `provision` and
   `cloudflare-tunnel-bootstrap` already describe themselves as idempotent, `cilium` adopts-in-place
   rather than reinstalling once Flux owns it, and `provision` waits on a real condition
@@ -41,9 +44,9 @@ type: plan
   task silently cleans leftovers (`docker rm -f`, `docker network rm`); hardening converts that silent
   cleaning into inspect-and-fail so a residual the destroy did not remove is surfaced, not swept
   (otherwise the AC2 seeded residual is cleaned before the check can fire).
-- **No spin-up measurement exists.** There is no task that times the stages to all-`Ready`. FR3 needs a
-  measurement task that stamps stage boundaries (cluster create, Cilium ready, Flux ready, payload
-  `Ready`) and emits a per-stage record; the plan below chooses where that record is committed.
+- **No spin-up measurement exists** (context retained; the workstream is withdrawn). No task times the
+  stages to all-`Ready`. Were the revisit trigger ever hit, the shape would be a task stamping stage
+  boundaries (cluster create, Cilium ready, Flux ready, payload `Ready`) and emitting a per-stage record.
 - **The day-2 Cilium gap is real and located.** `cilium` restarts the agent `DaemonSet` unconditionally
   after install/upgrade because Helm value changes update the ConfigMap without rolling the agents; once
   Flux owns Cilium day-2, there is no Flux-side equivalent. FR5 either builds a reconciled equivalent or
@@ -75,14 +78,12 @@ type: plan
 2. Prove AC2 by seeding a residual artifact (for example leave a dangling Docker network or a stale
    kube-context entry) and showing the verification step fails, then that a clean teardown passes.
 
-### Phase C - Staged spin-up measurement and budget (FR3, FR4, AC3)
+### Phase C - Withdrawn 2026-07-25 (staged spin-up measurement and budget)
 
-1. Add a measurement task that stamps stage boundaries (cluster create, Cilium ready, Flux ready, payload
-   all-`Ready`) and emits a per-stage timing record with a total, reproducible from a clean `teardown`.
-2. Commit the record as the budget baseline (location decided below), measured on the reference host.
-3. If the total exceeds 10 minutes, apply the FR4 levers in order and record which was used: a host-side
-   pull-through registry mirror via `talosctl cluster create` registry-mirror flags first, then relaxing
-   `dependsOn` chains where safe, and only last renegotiating the PRD metric explicitly.
+Withdrawn with FR3/FR4/AC3 by the 2026-07-25 amendment: spin-up time is not a problem in real use, so
+the measurement harness and committed budget are scoped out (`spec.md` non-goals, with the revisit
+trigger). The phase letter is retained rather than reused so Phase D's references stay unambiguous.
+Nothing in this phase is required for done.
 
 ### Phase D - Day-2 Cilium config-drift gap (FR5, AC5)
 
@@ -92,10 +93,11 @@ type: plan
 
 ## Decisions on the spec's open questions
 
-- **Where the spin-up budget lives**: recommend a committed `docs/reviews/phase-4-spinup-budget-<date>.md`
-  emitted by the measurement task, mirroring how `docs/reviews/` already holds point-in-time evidence
-  artifacts. It is committed and reproducible, not a console reading, and it is not governed knowledge
-  (it is a measurement record, like the promotion-evidence files).
+- **Where the spin-up budget lives**: moot as of the 2026-07-25 amendment (the budget is scoped out).
+  Retained for the revisit: the recommendation was a committed
+  `docs/reviews/phase-4-spinup-budget-<date>.md` emitted by the measurement task, mirroring how
+  `docs/reviews/` already holds point-in-time evidence artifacts, so it is committed and reproducible
+  rather than a console reading, and is not governed knowledge.
 - **FR5 direction**: recommend the accepted-limitation record for v1. A Flux-side config-drift restart is
   real engineering for a single-user rehearsal tool whose Cilium values change rarely; the honest dated
   limitation plus the imperative bootstrap restart is proportionate, and building the reconciled
@@ -104,25 +106,23 @@ type: plan
 
 ## Risks and mitigations
 
-- **Measurement variance**: image-pull times dominate and vary with cache state, so a single reading can
-  mislead. Mitigation: measure from a clean `teardown` (cold), record the cache assumption alongside the
-  numbers, and treat the budget as a baseline with a stated tolerance, not a hard pass/fail on one run.
 - **Teardown false-negatives**: a residue check that greps too narrowly can pass while leaving cruft.
   Mitigation: the seeded-residual test (AC2) proves the check actually bites, exactly as the governance
   spec used a seeded frontmatter violation.
-- **Registry-mirror lever complexity**: the mirror is the first lever but adds host-side setup. Mitigation:
-  apply it only if the measured total exceeds the target, and record whether it was needed rather than
-  building it pre-emptively.
+- **Descope regret**: withdrawing the measurement workstream means a future spin-up regression is noticed
+  by feel rather than caught by a number. Mitigation: accepted deliberately - the revisit trigger is
+  recorded in `spec.md`'s non-goals, and the withdrawn design is retained in this plan so rebuilding it is
+  a lookup, not a redesign.
 - **Toolchain requirement**: none of these acceptance criteria can be verified without the cluster
   toolchain. Mitigation: this plan and its tasks are executed on a Docker + `mise` host; a docs-only
   session can author and review them but not close them.
 
 ## Definition of done
 
-All five acceptance criteria in `spec.md` verified on a toolchain-equipped host: the idempotent-re-run
-transcript (AC1), the seeded-residual teardown proof (AC2), the committed per-stage spin-up budget (AC3),
-the no-standalone-sleep audit (AC4), and the resolved-or-recorded day-2 Cilium gap (AC5). The measurement
-record and any applied lever are committed with the change.
+The four live acceptance criteria in `spec.md` verified on a toolchain-equipped host: the
+idempotent-re-run transcript (AC1), the seeded-residual teardown proof (AC2), the no-standalone-sleep
+audit (AC4), and the resolved-or-recorded day-2 Cilium gap (AC5).
+AC3 is withdrawn (2026-07-25 amendment) and is not part of done.
 
 ## Pre-implementation review (gate 3)
 
@@ -134,5 +134,10 @@ exists) and surfaced the defects reconciled into this bundle: the two owner-only
 HUMAN markers (`tasks.md` T011 lever 3, T012 FR5 direction), AC1 was made mechanically checkable, the
 FR1-versus-unconditional-Cloudflare-PUT collision is resolved as an accepted exception, and the
 teardown auto-remove trap and seeded-residual matching (T006/T008) are called out.
-Framing review (gate 1, zoom-out) was deliberately skipped: Phase 4 is obviously-scoped hardening whose
-direction is fixed by the PRD and constitution, not a solve-the-right-problem question.
+Framing review (gate 1, zoom-out) was deliberately skipped at that point: Phase 4 read as
+obviously-scoped hardening whose direction was fixed by the PRD and constitution.
+That judgement was partly wrong, and the 2026-07-25 amendment is the correction: asking whether the
+spin-up workstream was solving a real problem was exactly a framing question, and the answer (measured
+against real use, it was not) removed two of the five requirements.
+A second fresh-context adversarial review was run on the amended bundle; its findings are reconciled
+below.
