@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **changelog:** Wire git-cliff automated changelog generation
 - **devcontainer:** Add cross-host devcontainer with opt-in cluster overlay (#9)
 - **governance:** RKA parity migration - restore validator, migrate docs, scope ADR
+- **governance:** Adopt the RKA ADR-0013 spec-lifecycle gate early
 
 ### Changed
 

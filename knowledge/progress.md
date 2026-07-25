@@ -2,8 +2,8 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.8
-date: 2026-07-24
+version: 0.1.9
+date: 2026-07-25
 type: context
 ---
 
@@ -37,6 +37,12 @@ phased-status section, and the review's survey of this repo.
   the `lint:frontmatter` task hard-fails if the script goes missing.
 - Upstream conventions verified current (2026-07-22 survey): the released
   RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
+- Bundle index present (2026-07-25): `knowledge/index.md` enumerates all 19
+  governed documents with descriptions, so an agent can load only what a task
+  needs.
+  Its presence activates validator rule 7 (every governed document listed, every
+  entry resolves), which was latent while no index existed; both halves proven by
+  seeded violation.
 - Spec-lifecycle gate live (2026-07-24, ADR-0009): feature specs are governed
   bundles under `knowledge/specs/<NNN>-<slug>/`, and the validator now fails a
   bundle whose tasks are all complete but is not `archived` (9b), a bundle with
@@ -59,8 +65,8 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- Promote ADR-0008 and ADR-0009 (`draft`, `adr_status: accepted`) from `draft`
-  to `active` when convenient; both record in-force decisions.
+- Promote ADR-0009 (`draft`, `adr_status: accepted`) to `active` once it has
+  seasoned; ADR-0008 was promoted 2026-07-25.
 - Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
   they should season as `active` through the Phase 4 hardening pass and at
   least one more consuming change before an evidence-backed canonical review.
