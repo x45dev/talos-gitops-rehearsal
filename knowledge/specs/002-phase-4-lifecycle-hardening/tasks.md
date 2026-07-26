@@ -2,7 +2,7 @@
 id: tasks-002-phase-4-lifecycle-hardening
 title: Task list - Phase 4 lifecycle hardening
 status: draft
-version: 0.2.1
+version: 0.2.2
 date: 2026-07-25
 type: tasks
 ---
@@ -97,7 +97,16 @@ neither. Do not convert this line into a checkbox.
       (lifecycle/idempotency/metrics hardening) has not started"), and `knowledge/index.md` (its 002
       entries still describe the withdrawn spin-up scope and say "markers" plural).
       All governed, so a patch version bump each; `index.md` carries no frontmatter.
-- [ ] **T015** **HUMAN - owner decision, do not perform autonomously.** The descope leaves PRD Section 7
+- [x] **T015** **HUMAN - owner decision.** Resolved 2026-07-25, out of phase order: this task depends
+      only on the descope, not on Phase 4 execution, so it was closed early.
+      Recorded as `knowledge/adr/ADR-0010.md` (`adr_status: accepted`): the under-ten-minute metric
+      stands unchanged but is deliberately uninstrumented in v1, and the three documents that named a
+      carrier (PRD Section 7, PLAN Phase 4 item 3, the constitution's definition of done) now point at
+      the ADR instead. Provenance: the substance is the maintainer's (they reported spin-up is not
+      painful and directed the descope, then directed this task); the choice between the two options
+      below was the agent's, taken on that instruction and reversible.
+      Original wording follows.
+      **HUMAN - owner decision, do not perform autonomously.** The descope leaves PRD Section 7
       and the constitution's definition-of-done spin-up metric carried by nothing: PRD Section 7 names
       the plan's Phase 4 as the budget's carrier and forbids the metric being "silently missed", and
       withdrawing FR3/FR4 produces exactly that state. This is the sign-off that was lost when T011

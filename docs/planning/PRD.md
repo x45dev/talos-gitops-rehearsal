@@ -152,7 +152,7 @@ This section replaces the earlier unqualified "manifests must be identical to AW
 ## 7. Success Metrics
 
 * **Spin-up Time:** < 10 minutes from `mise` command to turnkey cluster readiness, where readiness means every payload `HelmRelease`/`Kustomization` reports `Ready`.
-  The plan (Phase 4) carries a per-stage budget; if the measured total exceeds the target, the metric is renegotiated explicitly (scope or number), never silently missed.
+  **Uninstrumented as of 2026-07-25** (`knowledge/adr/ADR-0010.md`): the target and its definition stand unchanged, but no per-stage budget is measured or maintained, so whether it is currently met is unknown. Phase 4 no longer carries the budget - that workstream was withdrawn from the Phase 4 feature spec. The ADR records the reasoning and the trigger for building instrumentation later. If a measured total ever exceeds the target, the metric is renegotiated explicitly (scope or number), never silently missed.
 * **Workflow & app-overlay parity:** the GitOps workflow and the application/workload overlay for the target cluster are identical to the future AWS (CAPA) deployment.
   The cluster-provisioning mechanism is explicitly environment-specific and is not measured for identity (Section 5).
 * **Cleanliness:** zero orphaned Docker containers or networks for the cluster (including the `talosctl`-created cluster network), and zero config residue - no cluster context left in repo-local or user-global kubeconfig/talosconfig, no leftover `talosctl` state directory - after `teardown`.

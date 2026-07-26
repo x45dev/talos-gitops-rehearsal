@@ -2,8 +2,8 @@
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
 status: active
-version: 0.1.5
-date: 2026-07-22
+version: 0.1.6
+date: 2026-07-25
 type: constitution
 ---
 
@@ -113,6 +113,8 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
 - **Success metrics** (`docs/planning/PRD.md` Section 7, lines 147-153):
   - Spin-up time under 10 minutes from `mise` command to every payload
     `HelmRelease`/`Kustomization` reporting `Ready`.
+    Deliberately uninstrumented in v1 (ADR-0010): the target stands, but nothing measures it, so
+    whether it is met is unknown. Weigh this before promoting the constitution past `active`.
   - Workflow and application-overlay parity with the future cloud (CAPA) deployment
     (the cluster-provisioning mechanism itself is explicitly excluded from this
     metric).

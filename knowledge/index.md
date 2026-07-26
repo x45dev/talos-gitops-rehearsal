@@ -25,6 +25,7 @@ Rule 7 of `scripts/validate-frontmatter.sh` keeps it honest - every governed doc
 * [ADR-0007 - Scope identity](adr/ADR-0007.md) - This repository is the single-tenant, single-cluster local GitOps rehearsal tool; the multi-customer ephemeral IDP is a separate future project. Also records the deferred repository rename and its blast radius.
 * [ADR-0008 - Keep the PRD unmanaged](adr/ADR-0008.md) - A pre-existing PRD is an extraction source, never an induction candidate; its durable content lives in the constitution, context, and ADRs.
 * [ADR-0009 - Adopt the ADR-0013 spec-lifecycle gate early](adr/ADR-0009.md) - A scoped exception to ADR-0012's release-train rule, adopting validator rules 8 and 9 ahead of the train, with a standing obligation to reconcile when they ship.
+* [ADR-0010 - Spin-up metric stated but uninstrumented](adr/ADR-0010.md) - The under-ten-minute spin-up target stands unchanged but is deliberately not measured in v1; closes the commitment orphaned by the 002 descope, with the revisit trigger recorded.
 
 ## Feature Specifications
 
