@@ -1,9 +1,9 @@
 ---
 id: plan-002-phase-4-lifecycle-hardening
 title: Implementation plan - Phase 4 lifecycle hardening
-status: draft
-version: 0.2.1
-date: 2026-07-25
+status: archived
+version: 0.3.0
+date: 2026-07-26
 type: plan
 ---
 

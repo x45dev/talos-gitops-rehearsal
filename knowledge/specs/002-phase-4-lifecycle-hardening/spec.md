@@ -1,14 +1,21 @@
 ---
 id: spec-002-phase-4-lifecycle-hardening
 title: Phase 4 - lifecycle and idempotency hardening
-status: draft
-version: 0.2.1
-date: 2026-07-25
+status: archived
+version: 0.3.0
+date: 2026-07-26
 type: spec
 ---
 
 # Feature Specification: Phase 4 - lifecycle and idempotency hardening
 
+> **Archived 2026-07-26 without being executed, maintainer decision.** The surviving requirements
+> defended failure modes that have not occurred: asked directly, the maintainer reported that neither
+> non-idempotent re-runs nor teardown residue has bitten in real use.
+> That is the same test that withdrew FR3/FR4 on 2026-07-25, applied to the rest of the bundle.
+> The invariants remain stated in the constitution and remain unverified; see the Extraction record at
+> the end of this file for what that costs and what would reopen it.
+>
 > **Amended 2026-07-25 (v0.2.0, reconciled v0.2.1), maintainer decision.** The spin-up measurement and budget workstream
 > (FR3, FR4, AC3) is withdrawn to non-goals: the maintainer reports spin-up time has not been painful in
 > daily use, so building the harness was judged not worth its cost right now.
@@ -153,3 +160,42 @@ than on a re-runnable, self-verifying pipeline.
 - **FR5 direction.** Whether a Flux-side config-drift restart mechanism is worth building for a
   single-user v1, or whether the accepted-limitation record is the right v1 answer, is a judgment for
   `plan.md` to frame with options.
+
+## Extraction record
+
+Recorded 2026-07-26, on archival without execution.
+
+**Why it was archived rather than run.** Every requirement in this bundle defended a failure mode that
+has not occurred. FR3/FR4 (spin-up budget) went first, on 2026-07-25, because spin-up time was not
+painful in daily use. FR1 (end-to-end idempotency) and FR2 (zero-residue teardown) followed on
+2026-07-26 for the same reason: asked directly, the maintainer reported neither has bitten. Executing
+the bundle would have spent a cluster-equipped session hardening against the hypothetical.
+
+**What this costs, stated plainly.** Constitution invariants 3 (the idempotency bar) and 4
+(deterministic, zero-residue teardown) remain *asserted and unverified*. Nothing proves a converged
+re-run is a no-op, and teardown cleans rather than checks. This is recorded as a known limitation in
+`knowledge/progress.md` rather than quietly dropped.
+
+**Durable knowledge worth keeping** (verified against the tree while this bundle was authored):
+
+- `cloudflare-tunnel-bootstrap` performs an unconditional ingress-config PUT and DNS upsert. This is
+  idempotent-by-overwrite with no destructive side effect and is deliberate, not a defect - any future
+  idempotency audit should treat it as an accepted exception rather than "fix" it.
+- The `git-credentials` secret rebuilds `known_hosts` from a live `api.github.com/meta` fetch on every
+  run, so a GitHub key rotation or reordering makes `kubectl apply` report `configured` with no
+  idempotency defect present. Any future no-op assertion must exempt it.
+- `teardown` silently `docker rm -f`/`docker network rm`s leftovers rather than failing on them, and is
+  not reachable from the `all` aggregate (it has no `depends`), so it must be invoked explicitly.
+- The idempotency bar distinguishes a retry backoff inside an `until`/`while` condition loop (fine, and
+  what the chain uses) from a standalone fixed `sleep N` standing in for a precondition (forbidden). No
+  standalone sleep remained in the chain as of 2026-07-25.
+- Method note: two fresh-context adversarial reviews of this bundle each returned blockers, including
+  an exit path that would have failed the repo's own validator and a descope that silently deleted a
+  human sign-off. The reviews were worth more than the feature.
+
+**What would reopen this.** A non-idempotent re-run or teardown residue actually biting; a second person
+using the tool, where "it has not bitten me" stops being sufficient evidence; or the substrate changing
+(the parked LXC/micro-cluster direction), which would invalidate the teardown and idempotency analysis
+above since it is specific to the Docker provisioner.
+
+Superseded by: nothing. v1 is complete; no successor spec is planned.

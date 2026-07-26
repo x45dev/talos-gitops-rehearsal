@@ -76,12 +76,15 @@ phased-status section, and the review's survey of this repo.
 
 ## What's left
 
-- Phase 4 (lifecycle and idempotency hardening): not started; spec bundle
-  `knowledge/specs/002-phase-4-lifecycle-hardening/` is authored and reviewed.
-  Descoped 2026-07-25 (v0.2.0): spin-up measurement and budget withdrawn to
-  non-goals (not a problem in real use, revisit trigger recorded); the surviving
-  work proves constitution invariants 3 (idempotency) and 4 (zero-residue
-  teardown), which are currently asserted rather than verified.
+**v1 is complete (2026-07-26).** The turnkey payload stands up reproducibly and was
+live-verified at Phase 3; the payload itself is the deliverable, and nothing further is
+required of v1. What follows is deferred by design, not outstanding work.
+
+- Phase 4 (lifecycle and idempotency hardening): **archived unexecuted 2026-07-26**
+  (`knowledge/specs/002-phase-4-lifecycle-hardening/`). Every requirement defended a
+  failure mode that had not occurred: spin-up time, non-idempotent re-runs and teardown
+  residue have none of them bitten in real use. The bundle's extraction record holds the
+  durable findings and what would reopen it.
 - Phase 5 (YubiKey hardening) and M-CAPI (real cloud target via Cluster
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
@@ -104,6 +107,10 @@ phased-status section, and the review's survey of this repo.
   treating this repo as "the IDP" overstates its scope (settled by ADR-0007:
   this repo is the single-tenant rehearsal tool, the multi-customer IDP is a
   separate future project).
+- Constitution invariants 3 (idempotency bar) and 4 (zero-residue teardown) are
+  **stated but unverified**: nothing proves a converged re-run is a no-op, and teardown
+  cleans rather than checks. Accepted deliberately on 2026-07-26 (neither has bitten);
+  the archived 002 bundle records what would reopen it.
 - Devcontainer couples to two sibling repos' churn: the digest-pinned
   `devbase` image (bootstrap-workspace) and the mounted `agent-standards`
   checkout; both update manually.
