@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.9
+version: 0.1.10
 date: 2026-07-25
 type: context
 ---
@@ -20,7 +20,7 @@ read out of `docs/planning/PLAN-*.md`.
 Phases 0-3 are done and live-verified (2026-07-12): Talos provisioning with
 Cilium, the `clusters/workload/` Flux loop, and the full turnkey payload
 (cert-manager + local Root CA, Dex GitHub OIDC, Cloudflare Tunnel).
-Next execution phase is Phase 4 (lifecycle, idempotency, metrics hardening);
+Next execution phase is Phase 4 (lifecycle and idempotency hardening);
 no work has started on it.
 
 ## Decisions settled by ADR-0007 (accepted 2026-07-22)
@@ -104,5 +104,10 @@ in `knowledge/progress.md`.
 - [ ] **Reconcile the ported validator** against the released one when a tagged
       `rka-template` release ships rules 8 and 9 (ADR-0009's standing
       obligation); record any divergence in `knowledge/progress.md`.
-- [ ] **Phase 4** (lifecycle, idempotency, metrics hardening) per
-      `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md`.
+- [ ] **Phase 4** (lifecycle and idempotency hardening) per
+      `knowledge/specs/002-phase-4-lifecycle-hardening/`.
+      Descoped 2026-07-25 (bundle v0.2.0): the spin-up measurement and budget
+      workstream is withdrawn to non-goals, because spin-up time is not a problem
+      in real use; what remains enforces constitution invariants 3 and 4, which
+      nothing currently proves.
+      Execution needs a host with Docker and the full `mise` toolchain.

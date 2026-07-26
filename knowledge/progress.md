@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.10
+version: 0.1.11
 date: 2026-07-25
 type: context
 ---
@@ -70,7 +70,12 @@ phased-status section, and the review's survey of this repo.
 
 ## What's left
 
-- Phase 4 (lifecycle, idempotency, metrics hardening): not started.
+- Phase 4 (lifecycle and idempotency hardening): not started; spec bundle
+  `knowledge/specs/002-phase-4-lifecycle-hardening/` is authored and reviewed.
+  Descoped 2026-07-25 (v0.2.0): spin-up measurement and budget withdrawn to
+  non-goals (not a problem in real use, revisit trigger recorded); the surviving
+  work proves constitution invariants 3 (idempotency) and 4 (zero-residue
+  teardown), which are currently asserted rather than verified.
 - Phase 5 (YubiKey hardening) and M-CAPI (real cloud target via Cluster
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved

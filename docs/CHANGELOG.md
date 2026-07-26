@@ -55,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **specs:** Reconcile Phase 4 bundle after gate-3 adversarial review
 - **governance:** Reconcile doubt-driven review findings on the session's work
 - **governance:** Add the bundle index and promote ADR-0008 to active
+- Add a governance and docs gate; document the index obligation
+- **specs:** Descope 002 - withdraw the spin-up measurement workstream
 
 ### Fixed
 
