@@ -2,8 +2,8 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.11
-date: 2026-07-25
+version: 0.1.12
+date: 2026-07-26
 type: context
 ---
 
@@ -97,8 +97,9 @@ in `knowledge/progress.md`.
       Adding or removing a governed document now requires updating it.
 - [x] **Promote ADR-0008** to `active` (2026-07-25): the PRD-handling decision
       has seasoned since 2026-07-22 and is in force.
-- [ ] **Promote ADR-0009** (`draft`, `adr_status: accepted`) to `active` once it
-      has seasoned; it was recorded 2026-07-24 and is in force.
+- [x] **Promote ADR-0009** to `active` (2026-07-26, maintainer decision): the
+      early-adoption decision has been in force since 2026-07-24, with rules 8, 9a
+      and 9b gating every commit since.
       Canonical promotion of the `active` ADRs remains a later gate (season
       through Phase 4).
 - [ ] **Reconcile the ported validator** against the released one when a tagged
