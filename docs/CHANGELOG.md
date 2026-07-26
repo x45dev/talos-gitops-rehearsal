@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **specs:** Descope 002 - withdraw the spin-up measurement workstream
 - **specs:** Reconcile the second gate-3 review of the descoped 002 bundle
 - **governance:** Close the orphaned spin-up commitment (ADR-0010, spec 002 T015)
+- **governance:** Promote ADR-0009 to active
 
 ### Fixed
 

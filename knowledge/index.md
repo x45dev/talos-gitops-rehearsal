@@ -32,9 +32,9 @@ Rule 7 of `scripts/validate-frontmatter.sh` keeps it honest - every governed doc
 * [001 Governance parity - spec](specs/001-governance-parity/spec.md) - Restore the frontmatter gate, migrate the knowledge base to the six-field schema, and settle scope. Archived; carries the bundle's extraction record.
 * [001 Governance parity - plan](specs/001-governance-parity/plan.md) - Implementation plan for the governance-parity work. Archived.
 * [001 Governance parity - tasks](specs/001-governance-parity/tasks.md) - Task list and execution evidence for the governance-parity work. Archived.
-* [002 Phase 4 lifecycle hardening - spec](specs/002-phase-4-lifecycle-hardening/spec.md) - End-to-end idempotent bootstrap, self-verifying zero-residue teardown, and the day-2 Cilium record. Draft; not yet executed. The spin-up measurement workstream was withdrawn on 2026-07-25.
-* [002 Phase 4 lifecycle hardening - plan](specs/002-phase-4-lifecycle-hardening/plan.md) - Implementation plan grounded in the `test-talos-spike` task chain, with both gate-3 adversarial reviews recorded. Draft.
-* [002 Phase 4 lifecycle hardening - tasks](specs/002-phase-4-lifecycle-hardening/tasks.md) - Task list T001 to T016 (T009-T011 withdrawn), with HUMAN markers on the two owner-only decisions. Draft; requires a host with Docker and the full `mise` toolchain.
+* [002 Phase 4 lifecycle hardening - spec](specs/002-phase-4-lifecycle-hardening/spec.md) - Archived 2026-07-26 without being executed: every requirement defended a failure mode that had not occurred. Carries the bundle's extraction record, including the durable codebase facts the authoring surfaced.
+* [002 Phase 4 lifecycle hardening - plan](specs/002-phase-4-lifecycle-hardening/plan.md) - Implementation plan grounded in the `test-talos-spike` task chain, with both gate-3 adversarial reviews recorded. Archived.
+* [002 Phase 4 lifecycle hardening - tasks](specs/002-phase-4-lifecycle-hardening/tasks.md) - Task list T001 to T016, never executed apart from T015. Archived.
 
 ## Working Context
 

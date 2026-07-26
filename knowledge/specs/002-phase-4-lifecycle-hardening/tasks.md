@@ -1,9 +1,9 @@
 ---
 id: tasks-002-phase-4-lifecycle-hardening
 title: Task list - Phase 4 lifecycle hardening
-status: draft
-version: 0.2.2
-date: 2026-07-25
+status: archived
+version: 0.3.0
+date: 2026-07-26
 type: tasks
 ---
 

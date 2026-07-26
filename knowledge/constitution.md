@@ -2,8 +2,8 @@
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
 status: active
-version: 0.1.6
-date: 2026-07-25
+version: 0.1.7
+date: 2026-07-26
 type: constitution
 ---
 
@@ -123,7 +123,9 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
   stated directly in the plan): Phases 0-3 (spike-to-green, host-native tooling
   decision, GitOps repository structure, and the full turnkey payload of Cilium,
   cert-manager, Dex, and Cloudflare Tunnel) are done and live-verified as of
-  2026-07-12; Phase 4 (lifecycle/idempotency/metrics hardening) has not started; Phase
+  2026-07-12, and **v1 is complete as of 2026-07-26**; Phase 4 (lifecycle/idempotency
+  hardening) was archived unexecuted, its requirements having defended failure modes that
+  never occurred (`knowledge/specs/002-phase-4-lifecycle-hardening/`); Phase
   5 (YubiKey hardening) and Milestone M-CAPI (re-introducing CAPI for a real cloud
   target) are deliberately unscheduled
   (`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` lines 44-217, especially the

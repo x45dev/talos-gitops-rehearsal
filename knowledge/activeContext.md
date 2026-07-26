@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.12
+version: 0.2.0
 date: 2026-07-26
 type: context
 ---
@@ -20,8 +20,11 @@ read out of `docs/planning/PLAN-*.md`.
 Phases 0-3 are done and live-verified (2026-07-12): Talos provisioning with
 Cilium, the `clusters/workload/` Flux loop, and the full turnkey payload
 (cert-manager + local Root CA, Dex GitHub OIDC, Cloudflare Tunnel).
-Next execution phase is Phase 4 (lifecycle and idempotency hardening);
-no work has started on it.
+**v1 is complete as of 2026-07-26.** The turnkey payload is the deliverable and it
+stands up reproducibly; Phase 4 was archived unexecuted because every requirement it
+carried defended a failure mode that had not occurred.
+No execution work is outstanding. Phase 5 (YubiKey) and M-CAPI stay deferred by design,
+and the LXC/micro-cluster substrate question is parked until a real need arrives.
 
 ## Decisions settled by ADR-0007 (accepted 2026-07-22)
 
@@ -109,11 +112,9 @@ in `knowledge/progress.md`.
       as ADR-0010. The metric stands but is deliberately uninstrumented; PRD Section 7,
       PLAN Phase 4 item 3, and the constitution's definition of done no longer claim a
       carrier that does not exist.
-- [ ] **Phase 4** (lifecycle and idempotency hardening) per
-      `knowledge/specs/002-phase-4-lifecycle-hardening/`.
-      Descoped 2026-07-25 (bundle v0.2.0): the spin-up measurement and budget
-      workstream is withdrawn to non-goals, because spin-up time has not been
-      painful in real use; what remains enforces constitution invariants 3 and 4,
-      which nothing currently proves.
-      T015 is already closed (ADR-0010); the remaining 12 tasks need a host with
-      Docker and the full `mise` toolchain.
+- [x] **Phase 4 - archived unexecuted** (2026-07-26, maintainer decision): the
+      spin-up workstream went on 2026-07-25 and the rest followed once it was
+      confirmed that neither non-idempotent re-runs nor teardown residue had bitten
+      in real use. Constitution invariants 3 and 4 remain stated but unverified,
+      recorded as a known limitation in `knowledge/progress.md`.
+      **v1 is complete; no execution work is outstanding.**
