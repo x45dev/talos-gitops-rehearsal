@@ -2,8 +2,8 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.12
-date: 2026-07-25
+version: 0.1.13
+date: 2026-07-26
 type: context
 ---
 
@@ -86,8 +86,8 @@ phased-status section, and the review's survey of this repo.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- Promote ADR-0009 (`draft`, `adr_status: accepted`) to `active` once it has
-  seasoned; ADR-0008 was promoted 2026-07-25.
+- ADR-0010 is the only governed document still at `draft`; promote it to
+  `active` once it has seasoned (recorded 2026-07-25).
 - Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
   they should season as `active` through the Phase 4 hardening pass and at
   least one more consuming change before an evidence-backed canonical review.
