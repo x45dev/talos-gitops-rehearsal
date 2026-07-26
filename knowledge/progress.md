@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.11
+version: 0.1.12
 date: 2026-07-25
 type: context
 ---
@@ -33,7 +33,7 @@ phased-status section, and the review's survey of this repo.
   1.19.x breaks host-network DNS on Talos 1.13), Flux 2.9.0.
 - Frontmatter gate restored and extended: `scripts/validate-frontmatter.sh`
   carries the `rka-template` v0.4.0 rules 1-7 plus the ADR-0013 rules 8, 9a and
-  9b (ported early per ADR-0009), and passes green on all 19 governed documents;
+  9b (ported early per ADR-0009), and passes green on all 20 governed documents;
   the `lint:frontmatter` task hard-fails if the script goes missing.
 - Upstream conventions verified current (2026-07-22 survey): the released
   RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
@@ -47,7 +47,13 @@ phased-status section, and the review's survey of this repo.
   `mise run` tries to decrypt the project secrets, and giving CI the AGE key
   would violate the zero-plaintext invariant.
   No cluster tests run in CI.
-- Bundle index present (2026-07-25): `knowledge/index.md` enumerates all 19
+- Spin-up metric commitment closed (2026-07-25, ADR-0010): the 002 descope left PRD
+  Section 7, PLAN Phase 4 item 3, and the constitution's definition of done all
+  naming a per-stage budget that nothing carried.
+  The metric stands unchanged but is now recorded as deliberately uninstrumented,
+  with a revisit trigger, and all three documents point at the ADR instead of
+  claiming a carrier. Whether the target is currently met is honestly unknown.
+- Bundle index present (2026-07-25): `knowledge/index.md` enumerates all 20
   governed documents with descriptions, so an agent can load only what a task
   needs.
   Its presence activates validator rule 7 (every governed document listed, every

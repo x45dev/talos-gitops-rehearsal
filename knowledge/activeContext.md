@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.1.10
+version: 0.1.11
 date: 2026-07-25
 type: context
 ---
@@ -88,7 +88,7 @@ in `knowledge/progress.md`.
       spec bundles migrated to `knowledge/specs/`; recorded in ADR-0009.
       Validator green on 19 governed documents.
 - [x] **Add the bundle index** (2026-07-25): `knowledge/index.md` now enumerates
-      all 19 governed documents, activating validator rule 7 (bundle-index
+      every governed document (20 as of ADR-0010), activating validator rule 7 (bundle-index
       integrity), which was latent while no index existed.
       Both halves proven by seeded violation (an unlisted governed document, and
       an entry that does not resolve).
@@ -104,10 +104,15 @@ in `knowledge/progress.md`.
 - [ ] **Reconcile the ported validator** against the released one when a tagged
       `rka-template` release ships rules 8 and 9 (ADR-0009's standing
       obligation); record any divergence in `knowledge/progress.md`.
+- [x] **Close the orphaned spin-up commitment** (2026-07-25, spec 002 T015): recorded
+      as ADR-0010. The metric stands but is deliberately uninstrumented; PRD Section 7,
+      PLAN Phase 4 item 3, and the constitution's definition of done no longer claim a
+      carrier that does not exist.
 - [ ] **Phase 4** (lifecycle and idempotency hardening) per
       `knowledge/specs/002-phase-4-lifecycle-hardening/`.
       Descoped 2026-07-25 (bundle v0.2.0): the spin-up measurement and budget
-      workstream is withdrawn to non-goals, because spin-up time is not a problem
-      in real use; what remains enforces constitution invariants 3 and 4, which
-      nothing currently proves.
-      Execution needs a host with Docker and the full `mise` toolchain.
+      workstream is withdrawn to non-goals, because spin-up time has not been
+      painful in real use; what remains enforces constitution invariants 3 and 4,
+      which nothing currently proves.
+      T015 is already closed (ADR-0010); the remaining 12 tasks need a host with
+      Docker and the full `mise` toolchain.

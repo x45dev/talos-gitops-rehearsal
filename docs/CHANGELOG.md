@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **governance:** Add the bundle index and promote ADR-0008 to active
 - Add a governance and docs gate; document the index obligation
 - **specs:** Descope 002 - withdraw the spin-up measurement workstream
+- **specs:** Reconcile the second gate-3 review of the descoped 002 bundle
 
 ### Fixed
 
