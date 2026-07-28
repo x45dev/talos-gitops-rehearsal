@@ -2,8 +2,8 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.13
-date: 2026-07-26
+version: 0.1.14
+date: 2026-07-28
 type: context
 ---
 
@@ -92,8 +92,13 @@ required of v1. What follows is deferred by design, not outstanding work.
 - ADR-0010 is the only governed document still at `draft`; promote it to
   `active` once it has seasoned (recorded 2026-07-25).
 - Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
-  they should season as `active` through the Phase 4 hardening pass and at
-  least one more consuming change before an evidence-backed canonical review.
+  they should season as `active` through at least one more consuming change
+  before an evidence-backed canonical review.
+  This condition originally had a second half, seasoning "through the Phase 4
+  hardening pass", which was retired on 2026-07-28 because Phase 4 was archived
+  unexecuted (2026-07-26) and that trigger can now never fire.
+  The surviving condition is unchanged and still untriggered: no consuming
+  change has landed against these ADRs since they went `active` on 2026-07-22.
 - Reconcile the early-ported validator rules 8/9 against the released version
   when a tagged `rka-template` release ships them, and record any divergence
   here (ADR-0009's standing obligation).
