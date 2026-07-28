@@ -2,8 +2,8 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.2.0
-date: 2026-07-26
+version: 0.2.1
+date: 2026-07-28
 type: context
 ---
 
@@ -103,8 +103,9 @@ in `knowledge/progress.md`.
 - [x] **Promote ADR-0009** to `active` (2026-07-26, maintainer decision): the
       early-adoption decision has been in force since 2026-07-24, with rules 8, 9a
       and 9b gating every commit since.
-      Canonical promotion of the `active` ADRs remains a later gate (season
-      through Phase 4).
+      Canonical promotion of the `active` ADRs remains a later gate, now
+      conditioned solely on at least one more consuming change (the "season
+      through Phase 4" half was retired 2026-07-28; see `progress.md`).
 - [ ] **Reconcile the ported validator** against the released one when a tagged
       `rka-template` release ships rules 8 and 9 (ADR-0009's standing
       obligation); record any divergence in `knowledge/progress.md`.
