@@ -16,7 +16,13 @@
 
   // Point the agent-config symlinks at the mounted agent-standards checkout,
   // install the project's mise tools, and set up the repo's lefthook gate.
-  "postCreateCommand": "bash -lc 'set -e; std=$HOME/Documents/Dev/agent-standards; ln -sf $std/AGENTS.md $HOME/AGENTS.md; ln -sf $std/OPINIONS.md $HOME/OPINIONS.md; mkdir -p $HOME/.claude/skills; for s in doubt-driven-development five-whys handoff sharpen zoom-out; do ln -sfn $std/.claude/skills/$s $HOME/.claude/skills/$s; done; ln -sf $HOME/AGENTS.md $HOME/.claude/CLAUDE.md; mise trust --yes || true; mise install; command -v lefthook >/dev/null && lefthook install || true'",
+  //
+  // The symlink wiring is `link-agent-config`, baked into the devbase base at
+  // /usr/local/bin by bootstrap-workspace 2213a77. It holds the only copy of the
+  // skill list, so a skill added upstream reaches this devcontainer on the next
+  // re-pin. This file previously inlined that logic, which made it a third copy
+  // the upstream de-duplication could not see - do not re-inline it.
+  "postCreateCommand": "bash -lc 'set -e; link-agent-config; mise trust --yes || true; mise install; command -v lefthook >/dev/null && lefthook install || true'",
 
   "customizations": {
     "vscode": {

@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.14
+version: 0.1.15
 date: 2026-07-28
 type: context
 ---
@@ -119,3 +119,12 @@ required of v1. What follows is deferred by design, not outstanding work.
 - Devcontainer couples to two sibling repos' churn: the digest-pinned
   `devbase` image (bootstrap-workspace) and the mounted `agent-standards`
   checkout; both update manually.
+  Re-pinned 2026-07-28 to `sha256:a9689b11`, replacing the 2026-07-19 pin,
+  which predated the 2026-07-22 base rebuild (`2213a77`).
+  That rebuild baked the agent-config wiring into the base as
+  `link-agent-config`, and `.devcontainer/devcontainer.json` now calls it
+  instead of inlining a third copy of the skill list.
+  This repo is a **second, cross-repo `devbase` digest pin site**;
+  bootstrap-workspace's own re-pin tooling assumes its compose file is the only
+  one, so a base rebuild there does not reach this repo (filed upstream as
+  `x45dev/bootstrap-workspace#50`).

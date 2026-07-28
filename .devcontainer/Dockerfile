@@ -10,7 +10,7 @@
 # The base is digest-pinned (not the floating :dev tag) so laptop and VPS build
 # on the byte-identical base image (cross-host parity). Re-pin deliberately on
 # each intentional base rebuild.
-FROM ghcr.io/x45dev/devbase@sha256:aeba05f9999151c4256a87650645e6fa730e2ede9d0cbfcaf36ce879c3ba3b5c
+FROM ghcr.io/x45dev/devbase@sha256:a9689b11c563c09f61670230c9e70180a2122ffee38871502f36d13942f1f382
 
 USER root
 # DL3008 (pin apt versions) intentionally ignored: docker-ce-cli only has to talk
