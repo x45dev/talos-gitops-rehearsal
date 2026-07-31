@@ -12,7 +12,7 @@
 creation_rules:
   - key_groups:
       - age:
-          - age1mv3xlpqug9ykzss0rts9jpuwx6rudl54ne6sx8xt53r5ltgudels2jywpe  # project key (kind-talos-gitops)
+          - age1mv3xlpqug9ykzss0rts9jpuwx6rudl54ne6sx8xt53r5ltgudels2jywpe  # project key (talos-gitops-rehearsal)
           - age1t0ge3nn3f09nwjfz2krsjmmyzauuv3294yr06hpak50jue7j2cfqwgjt8w  # user key (enables mise native decryption via XDG default)
     # encrypted_regex: '^(data|stringData)$' # Optional. Encrypt only values under 'data' or 'stringData' keys (only applies to JSON or YAML files).
     # key_regex: '.*' # Optional. If omitted in YAML/JSON, defaults to encrypting all keys. Explicitly adding is clearer.

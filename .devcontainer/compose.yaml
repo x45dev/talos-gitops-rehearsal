@@ -1,4 +1,4 @@
-# Devcontainer for kind-talos-gitops (see ADR-0006, which reopens ADR-0003's
+# Devcontainer for talos-gitops-rehearsal (see ADR-0006, which reopens ADR-0003's
 # "no devcontainer for v1" now that a concrete cross-machine need exists: running
 # agent/dev sessions on a second host - the Tailscale-joined VPS - against the
 # same toolchain the laptop uses).
@@ -22,7 +22,7 @@ services:
     # by the VPS cloud-init uid pin), so bind-mounted files line up.
     volumes:
       # The project itself, live.
-      - ..:/workspaces/kind-talos-gitops:cached
+      - ..:/workspaces/talos-gitops-rehearsal:cached
       # The AGE private key for in-container SOPS decryption; never baked in.
       - ${HOME}/.config/sops/age/keys.txt:/home/dev/.config/sops/age/keys.txt:ro
     # `init: true` puts docker's own init (tini) at PID 1 so exec'd processes get
