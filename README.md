@@ -14,6 +14,8 @@ See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requiremen
 2. **GitOps loop** - one Flux instance inside the target cluster reconciling the turnkey payload (`clusters/workload/`) from this repository.
 3. **Bootstrap security** - a `mise` task decrypts the project's SOPS/AGE-encrypted secrets and injects them into the cluster.
 
+Where `knowledge/` and `docs/planning/` call something "live-verified", that records a manual end-to-end run against a real cluster on 2026-07-12, not a continuously re-executed check: CI gates documentation and lint only, and never stands a cluster up (see Quality Standards below).
+
 ## Project Structure
 
 ```text
@@ -56,6 +58,14 @@ See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requiremen
 
 Everything under `knowledge/` is governed: it carries RKA frontmatter, moves through the `draft` to `active` to `canonical` lifecycle, and is validated on every commit.
 Everything under `docs/` is ungoverned working material and carries no lifecycle `status`.
+
+## Conventions
+
+`knowledge/` follows the Repository Knowledge Architecture (RKA) standard - the frontmatter schema, the `draft`/`active`/`canonical` lifecycle, and the promotion rules all come from it.
+RKA lives in `x45dev/repository-knowledge-architecture`; its public release is in progress, so this reference is deliberately a name rather than a link.
+
+Some agent-workflow references in `knowledge/` and in configuration comments - `agent-standards`, `bootstrap-workspace`, `devbase` - point at private upstream conventions of the author's.
+They are retained as historical record of how decisions were actually made, and nothing in this repository depends on them being reachable.
 
 ## Getting Started
 

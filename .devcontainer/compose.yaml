@@ -23,11 +23,11 @@ services:
     volumes:
       # The project itself, live.
       - ..:/workspaces/kind-talos-gitops:cached
-      # agent-standards, read-only (postCreate points the agent-config symlinks
-      # at it); the same checkout the workstation uses.
-      - ${HOME}/Documents/Dev/agent-standards:/home/dev/Documents/Dev/agent-standards:ro
       # The AGE private key for in-container SOPS decryption; never baked in.
       - ${HOME}/.config/sops/age/keys.txt:/home/dev/.config/sops/age/keys.txt:ro
-    # dumb-init (image entrypoint) stays PID 1; sleep keeps the container up so
-    # you exec in and run a zellij/Claude session over Tailscale.
+    # `init: true` puts docker's own init (tini) at PID 1 so exec'd processes get
+    # reaped; without it `sleep infinity` would be PID 1 and reap nothing. The
+    # sleep just keeps the container up so you exec in and run a zellij/Claude
+    # session over Tailscale.
+    init: true
     command: ["sleep", "infinity"]

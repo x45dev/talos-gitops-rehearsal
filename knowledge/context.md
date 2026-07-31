@@ -2,8 +2,8 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: active
-version: 0.2.4
-date: 2026-07-24
+version: 0.2.5
+date: 2026-07-31
 type: context
 ---
 
@@ -50,9 +50,10 @@ application-overlay carry over, the provisioning substrate does not
   Hardware-bound (YubiKey) key is a deferred hardening milestone
   (`docs/planning/PRD.md` Section 3.2).
 - **Task orchestration:** `mise`, host-native on the laptop (ADR-0003).
-  A `.devcontainer/` consuming the shared `devbase` image (thin Dockerfile that
-  adds a Docker CLI) was added for cross-machine dev and agent sessions on a
-  second host, reopening ADR-0003 per its own revisit trigger (ADR-0006).
+  A self-contained `.devcontainer/` (public base image, Docker CLI and mise
+  installed in the Dockerfile) was added for cross-machine dev and agent
+  sessions on a second host, reopening ADR-0003 per its own revisit trigger
+  (ADR-0006, which also records the image's now-historical shared-base origin).
   Its default container is a plain sandbox with no Docker access; the
   host-root-equivalent Docker socket and host networking that `talosctl` needs
   live in an opt-in `compose.cluster.yaml` overlay used only on a cluster-run
@@ -116,8 +117,9 @@ application-overlay carry over, the provisioning substrate does not
 - **Release-pinned upstream tracking.** RKA, `agent-standards`, and the
   `rka-template` conventions are consumed only at tagged releases, never at
   upstream HEAD (RKA ADR-0012 release trains).
-  The current pin is `rka-template` v0.4.0 (verified 2026-07-22), and the
-  `devbase` image is digest-pinned in `.devcontainer/Dockerfile`.
+  The current pin is `rka-template` v0.4.0 (verified 2026-07-22).
+  The `.devcontainer/Dockerfile` no longer pins a shared base image; it builds
+  from a public base per ADR-0006's post-publication note.
   One scoped exception stands: the RKA ADR-0013 spec-bundle lifecycle (validator
   rules 8, 9a, 9b) was adopted early on 2026-07-24 by maintainer decision, ahead
   of any `rka-template` release carrying it, because this repo was the upstream
