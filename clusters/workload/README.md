@@ -102,9 +102,11 @@ workflow.
   after any Git-driven change to an agent-level flag.
 - **`flux-system`'s NetworkPolicies allow unrestricted egress** (inherited unmodified
   from `flux install --export`'s stock output, not introduced by this tree). The
-  `git-credentials` (repo deploy key) and `sops-age` (project decryption key) secrets
-  both live in this namespace with no egress scoping around the controllers that mount
-  them. Accepted for v1 alongside this project's other deferred hardening item (the
+  `sops-age` secret (the project decryption key) lives in this namespace with no egress
+  scoping around the controllers that mount it.
+  The `git-credentials` deploy-key secret that used to sit beside it is retired: the
+  repository is public, so Flux clones it anonymously over HTTPS.
+  Accepted for v1 alongside this project's other deferred hardening item (the
   YubiKey-backed AGE key, PRD Section 3.2) rather than solved here.
 - **The Cloudflare Tunnel's ingress config is not Flux-reconciled.** Unlike every other
   component in this tree, `infrastructure/cloudflare-tunnel/ingress.yaml`'s desired
