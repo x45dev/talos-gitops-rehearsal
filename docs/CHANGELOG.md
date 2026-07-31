@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **env:** Move Cloudflare account/zone IDs out of the public tree
 - **devcontainer:** Make the devcontainer self-contained for public consumption
 - **readme:** Frame the governance conventions and verification claims for outside readers
+- **document:** Fix stale devbase/context.md claims; docs, lint already clean
 
 ### Fixed
 

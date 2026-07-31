@@ -1,4 +1,4 @@
-# OPT-IN cluster overlay for kind-talos-gitops (ADR-0006).
+# OPT-IN cluster overlay for talos-gitops-rehearsal (ADR-0006).
 #
 # Layer this on top of compose.yaml ONLY on a host you actually run the Talos
 # cluster on (the laptop), never on an unattended agent host like the VPS:

@@ -1,7 +1,9 @@
-# Ephemeral GitOps IDP (Local Edition)
+# talos-gitops-rehearsal
 
-A deterministic, high-speed ephemeral Kubernetes environment for local development.
-It provisions a single Talos Linux cluster on a workstation directly via `talosctl` (Docker provisioner), with one in-cluster Flux loop reconciling the turnkey payload.
+A single-tenant, single-workstation local GitOps rehearsal rig: one Talos cluster in Docker, Cilium, one in-cluster Flux loop.
+
+It provisions that cluster directly via `talosctl` (Docker provisioner) and reconciles the turnkey payload from this repository, deterministically and at speed, so the patterns can be proven locally before they are carried anywhere else.
+The multi-customer ephemeral IDP is a separate future project that consumes these patterns; it is out of scope here by decision (see `knowledge/adr/ADR-0007.md`).
 Cluster API (CAPI) is deferred to a future cloud milestone; what carries over to that cloud deployment unchanged is the GitOps workflow and the application/workload overlay, not the provisioning mechanism itself.
 Secrets are SOPS/AGE-encrypted at rest with a software AGE key in v1; a hardware-bound YubiKey key is a planned follow-on hardening milestone, not a v1 requirement.
 

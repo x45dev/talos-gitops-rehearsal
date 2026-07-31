@@ -9,7 +9,7 @@ metadata:
   namespace: cert-manager
 spec:
   isCA: true
-  commonName: kind-talos-gitops local root CA
+  commonName: talos-gitops-rehearsal local root CA
   secretName: root-ca-secret
   duration: 87600h # 10y - ephemeral clusters are short-lived; a long CA lifetime avoids mid-cycle renewal churn
   privateKey:

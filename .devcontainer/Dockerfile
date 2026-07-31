@@ -1,4 +1,4 @@
-# kind-talos-gitops dev image: a stock devcontainers base plus a Docker CLI and mise.
+# talos-gitops-rehearsal dev image: a stock devcontainers base plus a Docker CLI and mise.
 #
 # This image was previously built FROM a private shared base (ghcr.io/x45dev/devbase),
 # digest-pinned for cross-host parity. That base is not public, so for publication this
