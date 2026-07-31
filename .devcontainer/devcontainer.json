@@ -1,12 +1,8 @@
 // Devcontainer for kind-talos-gitops. Reopens ADR-0003's "no devcontainer for
 // v1" per ADR-0006: the concrete cross-machine reproducibility need it named as
 // its revisit trigger (running the toolchain on a second host - the VPS) now
-// exists. Consumes the shared devbase base via compose.yaml + a thin Dockerfile
-// that adds a Docker CLI.
-//
-// The base already carries mise, the toolchain, and Claude Code, so this file
-// only: picks the service, lands as non-root `dev`, and wires the per-project
-// agent-config links + mise tools + lefthook gate.
+// exists. The image is self-contained (see Dockerfile); this file picks the
+// service, lands as non-root `dev`, and wires the mise tools + lefthook gate.
 {
   "name": "kind-talos-gitops-dev",
   "dockerComposeFile": "compose.yaml",
@@ -14,15 +10,13 @@
   "workspaceFolder": "/workspaces/kind-talos-gitops",
   "remoteUser": "dev",
 
-  // Point the agent-config symlinks at the mounted agent-standards checkout,
-  // install the project's mise tools, and set up the repo's lefthook gate.
+  // Install the project's mise tools and set up the repo's lefthook gate.
   //
-  // The symlink wiring is `link-agent-config`, baked into the devbase base at
-  // /usr/local/bin by bootstrap-workspace 2213a77. It holds the only copy of the
-  // skill list, so a skill added upstream reaches this devcontainer on the next
-  // re-pin. This file previously inlined that logic, which made it a third copy
-  // the upstream de-duplication could not see - do not re-inline it.
-  "postCreateCommand": "bash -lc 'set -e; link-agent-config; mise trust --yes || true; mise install; command -v lefthook >/dev/null && lefthook install || true'",
+  // `bash -lc` is a login but NON-INTERACTIVE shell, so the mise activation line
+  // in ~/.bashrc never runs here. Everything below therefore reaches mise by
+  // explicit path, and reaches mise-managed tools via `mise exec` - a bare
+  // `lefthook` would not resolve.
+  "postCreateCommand": "bash -lc 'set -e; eval \"$(~/.local/bin/mise activate bash --shims)\"; mise trust --yes || true; mise install; mise exec -- lefthook install'",
 
   "customizations": {
     "vscode": {

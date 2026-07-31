@@ -1,22 +1,32 @@
-# kind-talos-gitops dev image: the shared devbase base plus a Docker CLI.
+# kind-talos-gitops dev image: a stock devcontainers base plus a Docker CLI and mise.
 #
-# The devbase image (ghcr.io/x45dev/devbase) deliberately ships no Docker
-# client - it is a general dev base. This repo's workload needs one: talosctl's
-# docker provisioner and the repo's docker/compose tasks drive a Docker daemon
-# (mounted from the host, see compose.yaml). Rather than bloat the shared base
-# for one consumer, add the CLI in a thin project image that FROMs it - the
-# extension pattern the base's own example devcontainer documents.
+# This image was previously built FROM a private shared base (ghcr.io/x45dev/devbase),
+# digest-pinned for cross-host parity. That base is not public, so for publication this
+# Dockerfile is self-contained: it starts from Microsoft's public devcontainers base and
+# installs the two things the private base used to supply (a non-root `dev` user and mise).
 #
-# The base is digest-pinned (not the floating :dev tag) so laptop and VPS build
-# on the byte-identical base image (cross-host parity). Re-pin deliberately on
-# each intentional base rebuild.
-FROM ghcr.io/x45dev/devbase@sha256:a9689b11c563c09f61670230c9e70180a2122ffee38871502f36d13942f1f382
+# The Docker client is this repo's own requirement, not a general one: talosctl's docker
+# provisioner and the repo's docker/compose tasks drive a Docker daemon mounted from the
+# host (see compose.cluster.yaml), so the CLI has to be in the image even though the
+# daemon never is.
+FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 USER root
+
+# The base ships a non-root `vscode` at uid/gid 1000. This repo's compose files, mounts,
+# and ADR-0006 all name the user `dev`, so rename rather than add a second uid-1000 user:
+# the uid/gid is what makes bind-mounted files line up with the host account.
+RUN usermod -l dev vscode \
+    && groupmod -n dev vscode \
+    && usermod -d /home/dev -m dev \
+    && if [ -f /etc/sudoers.d/vscode ]; then \
+    sed -i 's/vscode/dev/g' /etc/sudoers.d/vscode \
+    && mv /etc/sudoers.d/vscode /etc/sudoers.d/dev; \
+    fi
+
 # DL3008 (pin apt versions) intentionally ignored: docker-ce-cli only has to talk
 # to whatever host daemon is present, and Docker's apt repo drops old point
-# versions, so an exact pin would break rebuilds rather than stabilise them. The
-# reproducibility that matters (the base) is handled by the digest pin above.
+# versions, so an exact pin would break rebuilds rather than stabilise them.
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
@@ -29,6 +39,19 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin docker-buildx-plugin \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-# Restore the base image's non-root default user; compose overrides it to root
-# only for the socket-group alignment in the entry command.
+
+# Restore the non-root default user; compose overrides it to root only for the
+# socket-group alignment in the cluster overlay's entry command.
 USER dev
+
+# mise, the repo's tool manager and task runner, installed per-user under
+# ~/.local/bin. The activation line below only fires for INTERACTIVE shells, so
+# devcontainer.json's non-interactive postCreate invokes mise by explicit path
+# instead of relying on it - do not assume this line is in effect there.
+# DL4006 is not applicable: SHELL is set to bash with pipefail for the piped install.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# SC2016 intentionally ignored: the activation line must land in .bashrc unexpanded,
+# so `$(...)` runs when the interactive shell starts, not when this image is built.
+# hadolint ignore=SC2016
+RUN curl -fsSL https://mise.run | sh \
+    && echo 'eval "$(~/.local/bin/mise activate bash)"' >> /home/dev/.bashrc
