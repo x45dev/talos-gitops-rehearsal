@@ -57,7 +57,8 @@ The 2026-07-06 zoom-out established that the parity worth buying locally is the 
   Whether helm-controller takes over a CLI-installed release cleanly is Flux-version-dependent; it is verified live in plan Phase 2, not assumed.
   After adoption, day-2 Cilium changes flow through Git.
 * **GitOps Reconciliation:** FluxCD's controllers are installed into the target cluster (creating the `flux-system` namespace).
-* **Identity Injection:** the AGE-backed SOPS key is decrypted and applied as the `sops-age` secret into `flux-system`, and the persistent read-only deploy key (Section 6) is applied as the `git-credentials` secret - both after the Flux install creates the namespace, and before the root `Kustomization` is applied, so decryption and Git authentication never race the first reconcile.
+* **Identity Injection:** the AGE-backed SOPS key is decrypted and applied as the `sops-age` secret into `flux-system`, after the Flux install creates the namespace and before the root `Kustomization` is applied, so decryption never races the first reconcile.
+  Since the repository visibility flip to public (2026-08-01, Section 6), the `GitRepository` clones over anonymous HTTPS and no `git-credentials` secret or deploy key is injected.
 * **Self-Configuration:** the `GitRepository` and root `Kustomization` are applied, and Flux reconciles the "turnkey" payload from `clusters/workload/`:
   * **Networking:** Cilium (eBPF-native CNI/L4-LB, no kube-proxy; adopted from the bootstrap install).
   * **Traffic:** Cloudflare Tunnel for secure ingress.
@@ -144,7 +145,7 @@ This section replaces the earlier unqualified "manifests must be identical to AW
   Live-verified end-to-end three times from a clean `teardown` (see `PLAN-ephemeral-gitops-idp-2026-07-05.md` Phase 2 for the full evidence trail, including two real bugs a doubt-driven-development review and live testing caught and fixed: a values-file duplication that silently violated the single-source-of-truth precondition, and a server-side-apply field conflict between Helm CLI and helm-controller on re-entry after adoption).
   The CAPI-consumability contract (Section 5) is now a checkable doc at `clusters/workload/README.md`, not just this section's prose.
 * **State Persistence:** determine the strategy for local volume snapshotting if ephemeral cluster development requires "re-hydrating" database state across reboots.
-* **Flux source and local iteration loop (resolved 2026-07-07):** Flux tracks this repository's GitHub remote (confirmed private) via a persistent, one-time read-only SSH deploy key; local iteration on uncommitted changes uses a scratch branch the `GitRepository` tracks, repointed via `kubectl patch` and back to `main` when done.
+* **Flux source and local iteration loop (resolved 2026-07-07; superseded 2026-08-01):** Flux originally tracked this repository's GitHub remote (then private) via a persistent, one-time read-only SSH deploy key. The repository flipped public on 2026-08-01 after credential rotation, and the `GitRepository` now clones anonymously over HTTPS with no deploy key or `secretRef`. Local iteration on uncommitted changes still uses a scratch branch the `GitRepository` tracks, repointed via `kubectl patch` and back to `main` when done.
   Full rationale in `clusters/workload/README.md` and the plan's Decisions section.
 * **Overlay Strategy (resolved 2026-07-07):** the Kustomize layout is `clusters/workload/{flux-system,infrastructure}/`, with `infrastructure/kustomization.yaml` aggregating components so adding one doesn't require editing the root `kustomization.yaml`.
   Honors the CAPI-consumability contract; cleared a doubt-driven-development review (see the plan's Phase 2 status).

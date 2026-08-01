@@ -34,8 +34,8 @@ pre-commit:
     secrets-leak-guard:
       files: git status --porcelain
       run: |
-        if git status --porcelain | grep -E -q "\.config/mise/\.env(\.yaml|\.local)$"; then
-          echo "❌ ERROR: Plaintext local env file (.env.yaml or .env.local) is staged or modified!" >&2
+        if git status --porcelain | grep -E -q "\.config/mise/\.env(\.sops\.yaml|\.yaml|\.local)$"; then
+          echo "❌ ERROR: Plaintext or encrypted local env file (.env.yaml, .env.local, or .env.sops.yaml) is staged or modified!" >&2
           echo "💡 Fix: Run 'mise run project-secrets' to encrypt it, or remove it from tracking." >&2
           exit 1
         fi
