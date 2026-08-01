@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **document:** Fix stale devbase/context.md claims; docs, lint already clean
 - Rename the project to talos-gitops-rehearsal
 - Adopt the public no-committed-secrets posture
+- **review:** Widen secrets-leak-guard regex; update PRD's stale deploy-key architecture text
 
 ### Fixed
 

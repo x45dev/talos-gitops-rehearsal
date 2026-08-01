@@ -2,8 +2,8 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: active
-version: 0.2.5
-date: 2026-07-31
+version: 0.2.6
+date: 2026-08-01
 type: context
 ---
 
@@ -114,6 +114,9 @@ application-overlay carry over, the provisioning substrate does not
   persistent SSH deploy key (not per-cycle), and a scratch-branch repoint of the
   `GitRepository` for local iteration, chosen specifically to keep the Flux source
   *kind* identical between local and cloud.
+  Superseded in part 2026-08-01: the repository is now public, so the `GitRepository`
+  clones anonymously over HTTPS and the deploy key is retired (`docs/planning/PRD.md`
+  Section 6); the scratch-branch iteration pattern is unchanged.
 - **Release-pinned upstream tracking.** RKA, `agent-standards`, and the
   `rka-template` conventions are consumed only at tagged releases, never at
   upstream HEAD (RKA ADR-0012 release trains).
@@ -141,8 +144,9 @@ All recorded directly in `clusters/workload/README.md` "Known limitations" (line
   day-2 changes (the imperative bootstrap task's unconditional `DaemonSet` restart has
   no Flux-side equivalent yet).
 - `flux-system`'s `NetworkPolicies` allow unrestricted egress (inherited unmodified
-  from `flux install --export`'s stock output), with the `git-credentials` and
-  `sops-age` secrets living in that namespace.
+  from `flux install --export`'s stock output), with the `sops-age` secret living in
+  that namespace (the `git-credentials` secret that used to sit beside it is retired;
+  see the public no-committed-secrets posture above).
 - The Cloudflare Tunnel's ingress config is enforced by Cloudflare's control plane
   (API push), not Flux-reconciled, a structural consequence of the tunnel being
   provisioned with `remote_config: true` (token-mode `cloudflared`).
