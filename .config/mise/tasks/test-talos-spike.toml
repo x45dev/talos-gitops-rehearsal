@@ -293,18 +293,13 @@ kubectl create secret generic sops-age -n flux-system \
   --from-file=age.agekey=.config/sops/age/keys.txt \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "=> Injecting git-credentials secret (deploy key, decrypted in-memory via mise/SOPS - never written to disk)..."
-# known_hosts comes from GitHub's published Meta API, not a live ssh-keyscan TOFU probe
-# (https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
-GITHUB_KNOWN_HOSTS=$(curl -sf https://api.github.com/meta | jq -r '.ssh_keys[]' | sed 's/^/github.com /')
-if [ -z "$GITHUB_KNOWN_HOSTS" ]; then
-    echo "❌ Failed to fetch GitHub's published SSH host keys from the Meta API - aborting rather than injecting an empty known_hosts." >&2
-    exit 1
-fi
-kubectl create secret generic git-credentials -n flux-system \
-  --from-literal=identity="$FLUX_GIT_DEPLOY_KEY" \
-  --from-literal=known_hosts="$GITHUB_KNOWN_HOSTS" \
-  --dry-run=client -o yaml | kubectl apply -f -
+# RETIRED: the git-credentials secret injection.
+# This step used to decrypt an SSH deploy key (FLUX_GIT_DEPLOY_KEY) in memory and inject it,
+# with GitHub's published host keys as known_hosts, so Flux could clone this repository over
+# SSH while it was private. The repository is public now and gotk-sync.yaml's GitRepository
+# clones anonymously over HTTPS with no secretRef, so there is nothing left to inject.
+# The deploy key itself is revoked; do not reinstate this step without also restoring
+# secretRef: git-credentials in clusters/workload/flux-system/gotk-sync.yaml.
 
 # dex namespace is created here, not left to Flux's own namespace.yaml, for the same
 # reason cloudflare-tunnel's is: the Secret below must exist before Dex's Deployment

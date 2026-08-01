@@ -8,8 +8,16 @@
 # --- Env Configuration ---
 #
 # This section declaratively sets up the application environment. Mise
-# loads these files in order. It has native SOPS support and will automatically
-# decrypt `.env.sops.yaml` in memory before loading its variables.
+# loads these files in order, later files overriding earlier ones. It has native
+# SOPS support and will automatically decrypt `.env.sops.yaml` in memory before
+# loading its variables.
+#
+# Only `.env` is committed. The other two are machine-local and gitignored, and a
+# missing one is skipped rather than an error (verified against mise 2026.7.5):
+#   .env.sops.yaml  encrypted secrets, seeded from .env.yaml.template via
+#                   `mise run project-secrets`
+#   .env.local      plaintext non-secret overrides (the Cloudflare account/zone IDs
+#                   redacted from the public tree) - never credentials
 #
 [env]
 MISE_SOPS_AGE_KEY_FILE = "{{config_root}}/.config/sops/age/keys.txt"
@@ -21,7 +29,8 @@ KUBECONFIG_WORK = "{{config_root}}/.kube-workload.config"
 TALOSCONFIG = "{{config_root}}/.talosconfig"
 _.file = [
     "{{config_root}}/.config/mise/.env",
-    { path = "{{config_root}}/.config/mise/.env.sops.yaml", redact = true }
+    { path = "{{config_root}}/.config/mise/.env.sops.yaml", redact = true },
+    { path = "{{config_root}}/.config/mise/.env.local", redact = true }
 ]
 
 # Optionally add additional directories to $PATH

@@ -1,6 +1,6 @@
 # GitHub OAuth client ID/secret are injected pre-Flux as the `dex-github-oauth` Secret
-# (test-talos-spike:flux-bootstrap, same imperative-secret pattern as sops-age and
-# git-credentials) and referenced here as pod env vars. Dex expands `$VARNAME` in its
+# (test-talos-spike:flux-bootstrap, same imperative-secret pattern as sops-age) and
+# referenced here as pod env vars. Dex expands `$VARNAME` in its
 # connector config against the process environment by default (dexidp/dex's
 # `expand_env` feature flag defaults to true - verified against cmd/dex/config.go, not
 # assumed), so clientID/clientSecret below are never written to Git in any form.

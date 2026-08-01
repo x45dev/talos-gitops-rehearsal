@@ -7,12 +7,16 @@
 # completely ungated. This workflow closes that hole for the checks that need no
 # cluster.
 #
-# WHY NOT `mise run lint`: .config/mise/config.toml sets sops.strict = true and
-# loads .config/mise/.env.sops.yaml, so *any* `mise run` tries to decrypt the
-# project secrets and fails loudly without the AGE key. Giving CI that key would
-# put the project's decryption key in GitHub, which the "zero plaintext" invariant
-# rules out. So this workflow installs only the few tools the governance gates
-# need and calls them directly. The trade-off: it covers a subset of
+# WHY NOT `mise run lint`: originally because .config/mise/config.toml sets
+# sops.strict = true and loaded a committed .config/mise/.env.sops.yaml, so *any*
+# `mise run` tried to decrypt the project secrets and failed loudly without the AGE
+# key - and giving CI that key would put the project's decryption key in GitHub,
+# which the "zero plaintext" invariant rules out. That specific blocker is gone under
+# the public no-committed-secrets posture: the secrets file is machine-local now, and
+# mise skips a missing env file rather than failing. This workflow still installs only
+# the few tools the governance gates need and calls them directly, which is now a
+# scope choice rather than a hard constraint and is worth revisiting. The trade-off is
+# unchanged: it covers a subset of
 # `mise run lint` (frontmatter, markdown, em-dash, shell), not vale's full config
 # or the lychee link check, both of which stay local.
 #

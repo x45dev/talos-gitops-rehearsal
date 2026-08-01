@@ -18,9 +18,10 @@ spec:
   interval: 1m
   ref:
     branch: main
-  secretRef:
-    name: git-credentials
-  url: ssh://git@github.com/x45dev/talos-gitops-rehearsal.git
+  # No secretRef: this repository is public, so Flux clones it anonymously over
+  # HTTPS and needs no credential. The deploy-key-backed `git-credentials` secret
+  # this used while the repository was private is retired (see the bootstrap task).
+  url: https://github.com/x45dev/talos-gitops-rehearsal.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

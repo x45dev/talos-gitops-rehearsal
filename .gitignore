@@ -11,6 +11,13 @@
 .config/sops/age/keys.txt
 .config/mise/.env.yaml
 
+# Machine-local env files. Under the public-repo posture this repository carries no
+# committed secret ciphertext either, so the encrypted file is untracked as well.
+# Expected keys are documented in .config/mise/.env.yaml.template (secrets) and
+# .config/mise/.env.local.template (non-secret overrides).
+.config/mise/.env.sops.yaml
+.config/mise/.env.local
+
 # Host-specific devcontainer env (seeded from .env.example by initialize.sh; never committed)
 .devcontainer/.env
 

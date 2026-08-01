@@ -6,6 +6,8 @@ It provisions that cluster directly via `talosctl` (Docker provisioner) and reco
 The multi-customer ephemeral IDP is a separate future project that consumes these patterns; it is out of scope here by decision (see `knowledge/adr/ADR-0007.md`).
 Cluster API (CAPI) is deferred to a future cloud milestone; what carries over to that cloud deployment unchanged is the GitOps workflow and the application/workload overlay, not the provisioning mechanism itself.
 Secrets are SOPS/AGE-encrypted at rest with a software AGE key in v1; a hardware-bound YubiKey key is a planned follow-on hardening milestone, not a v1 requirement.
+This public repository carries no secret material of its own: no committed ciphertext and no credentials.
+Bring your own by creating the machine-local, gitignored `.config/mise/.env.sops.yaml` from `.config/mise/.env.yaml.template` (see Getting Started).
 
 See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requirements, [docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md](docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md) for the implementation plan, and [docs/planning/ZOR-ephemeral-gitops-idp-2026-07-06.md](docs/planning/ZOR-ephemeral-gitops-idp-2026-07-06.md) for the zoom-out review behind the current architecture (the 2026-07-05 ZOR is superseded and kept for history).
 
@@ -14,7 +16,8 @@ See [docs/planning/PRD.md](docs/planning/PRD.md) for the full product requiremen
 1. **Target cluster (Talos Linux)** - a single `talosctl cluster create` (Docker provisioner) cluster, 1 control plane + 2 workers, with Cilium as CNI/kube-proxy replacement.
    No local management cluster and no CAPI exist in v1 - see `docs/planning/ADR-capd-talos-bootstrap-incompatibility-2026-07-06.md` for why.
 2. **GitOps loop** - one Flux instance inside the target cluster reconciling the turnkey payload (`clusters/workload/`) from this repository.
-3. **Bootstrap security** - a `mise` task decrypts the project's SOPS/AGE-encrypted secrets and injects them into the cluster.
+3. **Bootstrap security** - a `mise` task decrypts your machine-local SOPS/AGE-encrypted secrets and injects them into the cluster.
+   Flux itself needs no credential: this repository is public, so its `GitRepository` clones anonymously over HTTPS.
 
 Where `knowledge/` and `docs/planning/` call something "live-verified", that records a manual end-to-end run against a real cluster on 2026-07-12, not a continuously re-executed check: CI gates documentation and lint only, and never stands a cluster up (see Quality Standards below).
 
@@ -82,7 +85,7 @@ They are retained as historical record of how decisions were actually made, and 
 mise run lint             # Run all linters (shfmt, shellcheck, links, vale, markdownlint)
 mise run hooks             # Sync Lefthook and run the pre-commit pipeline manually
 mise run changelog         # Regenerate docs/CHANGELOG.md from git history (git-cliff, Conventional Commits)
-mise run sops:project:manage   # Create/edit the encrypted project secrets file
+mise run sops:project:manage   # Create/edit your machine-local encrypted secrets file
 mise run app:start         # Start the app via Docker Compose
 ```
 
@@ -105,8 +108,11 @@ See ADR-0006 for the full rationale and the security split behind it.
 
 - **Automated Hooks**: Lefthook regenerates `docs/CHANGELOG.md` and runs linting and SOPS/secrets-leak guards before every commit.
 - **CI**: `.github/workflows/ci.yml` re-runs the governance and docs gate (frontmatter, markdown, em dashes, shellcheck) on pull requests and pushes to `main`, so a commit made without the local toolchain is still checked.
-  It deliberately does not use `mise` (which would need the AGE key to satisfy `sops.strict`) and runs no cluster tests.
+  It installs the few tools the governance gates need and calls them directly rather than going through `mise`, and runs no cluster tests.
 - **Zero Plaintext**: No decrypted credentials persist on local disk; secrets are SOPS/AGE-encrypted at rest (software AGE key in v1; see Architecture above).
+  The one plaintext file, the gitignored `.config/mise/.env.local`, holds only the Cloudflare account and zone IDs, which identify an account rather than authenticate to it.
+- **No Committed Secrets**: neither plaintext nor ciphertext credentials are tracked in this repository.
+  Both `.config/mise/.env.sops.yaml` and `.config/mise/.env.local` are gitignored; only their templates are committed, and a Lefthook guard rejects either if it is ever staged.
 - **Prose Linting**: vale enforces the no-em-dash rule and markdownlint enforces markdown structure; one sentence per line is a house convention, not a mechanical gate.
 - **Keep `knowledge/index.md` current**: the bundle index must list every governed document, and every entry must resolve.
   Adding, removing, or renaming anything under `knowledge/` therefore means editing `index.md` in the same change, or the frontmatter gate (rule 7) fails the commit.
