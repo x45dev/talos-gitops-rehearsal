@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename the project to talos-gitops-rehearsal
 - Adopt the public no-committed-secrets posture
 - **review:** Widen secrets-leak-guard regex; update PRD's stale deploy-key architecture text
+- **document:** Sync stale git-credentials/deploy-key facts in context.md; lint already clean
 
 ### Fixed
 
