@@ -2,7 +2,7 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: active
-version: 0.2.7
+version: 0.2.8
 date: 2026-08-02
 type: context
 ---
@@ -60,9 +60,16 @@ application-overlay carry over, the provisioning substrate does not
   host, so unattended agent sessions on the VPS never hold that access.
   The cluster itself still runs on the laptop, since a 4GB second host cannot
   hold the ~6GB Talos cluster.
-  Every tool version is pinned in `.config/mise/config.toml`'s `[tools]` table
+  Every tool is declared in `.config/mise/config.toml`'s `[tools]` table
   (age, bats, flux2, git-cliff, hadolint, helm, jq, kubectl, lefthook, lychee, sops,
-  talosctl, vale, yq).
+  talosctl, vale, yq), so `mise install` provisions the same set everywhere.
+  Corrected 2026-08-02: this used to claim every tool *version* is pinned, which is
+  not what the table says.
+  Only `flux2` carries a version pin (`2.9.0`, with its reason inline); every other
+  entry is `latest`, so the set is common but the versions float.
+  That is the deliberate convention here - pin where behaviour is version-sensitive,
+  float otherwise - and the load-bearing pins are the ones recorded in
+  `knowledge/progress.md`.
 - **Git hooks:** Lefthook, regenerating `docs/CHANGELOG.md` and running lint and
   SOPS/secrets-leak guards before every commit (`README.md` line 79;
   `.config/lefthook.yaml`).

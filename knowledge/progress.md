@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.16
+version: 0.1.17
 date: 2026-08-02
 type: context
 ---
@@ -69,8 +69,28 @@ phased-status section, and the review's survey of this repo.
   this repo's error strings keep their `RFC-003 section 5` / `PRD FR5.2` citations,
   which upstream dropped; 2-space indentation against upstream's 4; and one loop
   variable named `r` rather than `legal`.
-  One divergence is **not** yet closed and is tracked below: upstream v0.1.0 ships
-  `tests/validate-frontmatter.bats`, and this repo has no tests for its validator.
+  The last divergence, upstream's `tests/validate-frontmatter.bats`, was closed
+  the same day (below).
+- Validator test suite adopted (2026-08-02): `tests/validate-frontmatter.bats`,
+  taken from `rka-template` v0.1.0 per ADR-0012, 26 tests green.
+  Until now every rule here had been proven by one-off seeded violation, which
+  proves the rule once at the moment it lands and then leaves nothing standing
+  behind it; a later edit could quietly reopen any of them.
+  The suite builds a throwaway knowledge tree per test and runs the validator end
+  to end (find + yq + jq), so it exercises the real toolchain rather than a mock.
+  It covers all nine rules, including the three fail-opens closed earlier that day.
+  Reindented from upstream's 4 spaces to this repo's 2, the same treatment the
+  validator got; a future reconciliation should normalise leading whitespace before
+  diffing, and the file's header records the exact command.
+  **It runs in CI, not in the pre-commit hook**, and that is a deliberate cost call:
+  measured 2026-08-02, `bats tests/validate-frontmatter.bats` takes 1m22s and
+  `mise run test` 1m38s (26 tests at ~0.95s a validator run) against ~25s for the
+  entire local gate, so putting it in Lefthook would roughly quintuple every commit
+  to re-prove rules that only change when the validator changes.
+  CI is where this repo's governance enforcement is already binding, and it covers
+  the ungated paths (cloud agent sessions, fresh clones) that CI exists for.
+  `mise run test` (alias `t`) runs it locally; the task fails loudly rather than
+  skipping if `bats` is absent, matching the `lint:frontmatter` two-state rule.
 - CI gate added (2026-07-25): `.github/workflows/ci.yml` re-runs the governance
   and docs checks (frontmatter validator, markdownlint, em dash, shellcheck) on
   pull requests and pushes to `main`.
@@ -136,11 +156,9 @@ required of v1. What follows is deferred by design, not outstanding work.
 - ~~Reconcile the early-ported validator rules 8/9 against the released
   version~~ **done 2026-08-02** (see "What works"); ADR-0009's standing
   obligation is discharged.
-- The validator has no tests of its own. Upstream `rka-template` v0.1.0 ships
-  `tests/validate-frontmatter.bats`, which this repo has not adopted; every rule
-  here has been proven by one-off seeded violation instead, which proves the rule
-  once and then leaves nothing standing behind it. Adopting the suite needs `bats`
-  in the `mise` toolchain and a task wired into `lint` and CI.
+- ~~The validator has no tests of its own.~~ **done 2026-08-02**: upstream's
+  `tests/validate-frontmatter.bats` adopted, 26 tests green in CI (see
+  "What works").
 - **Open question for the maintainer, raised 2026-08-02.** `rka-template` is no
   longer a repo to copy conventions out of by hand: it is now a Copier template
   with a `copier.yml` and an answers file, designed to be applied and re-applied.

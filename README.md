@@ -53,6 +53,7 @@ Where `knowledge/` and `docs/planning/` call something "live-verified", that rec
 │   ├── adr/            # Architecture Decision Records (ADR-NNNN)
 │   └── specs/          # Governed feature-spec bundles (<NNN>-<slug>/{spec,plan,tasks}.md)
 ├── scripts/            # validate-frontmatter.sh (the RKA gate), devcontainer-up.sh
+├── tests/              # bats suite for the RKA gate itself (mise run test; runs in CI)
 ├── docs/
 │   ├── planning/       # PRD, plan, and the pre-RKA dated ADRs and zoom-out reviews (ungoverned)
 │   ├── reviews/        # Point-in-time review records (promotion evidence) - ungoverned
@@ -82,7 +83,8 @@ They are retained as historical record of how decisions were actually made, and 
 ### Development Tasks
 
 ```bash
-mise run lint             # Run all linters (shfmt, shellcheck, links, vale, markdownlint)
+mise run lint             # Run all linters (shfmt, shellcheck, links, vale, markdownlint, frontmatter)
+mise run test              # Run the test suites (bats: the frontmatter validator's own rules)
 mise run hooks             # Sync Lefthook and run the pre-commit pipeline manually
 mise run changelog         # Regenerate docs/CHANGELOG.md from git history (git-cliff, Conventional Commits)
 mise run sops:project:manage   # Create/edit your machine-local encrypted secrets file
@@ -109,6 +111,8 @@ See ADR-0006 for the full rationale and the security split behind it.
 - **Automated Hooks**: Lefthook regenerates `docs/CHANGELOG.md` and runs linting and SOPS/secrets-leak guards before every commit.
 - **CI**: `.github/workflows/ci.yml` re-runs the governance and docs gate (frontmatter, markdown, em dashes, shellcheck) on pull requests and pushes to `main`, so a commit made without the local toolchain is still checked.
   It installs the few tools the governance gates need and calls them directly rather than going through `mise`, and runs no cluster tests.
+- **Tested gates**: the frontmatter validator has its own `bats` suite (`tests/validate-frontmatter.bats`, 26 tests covering all nine RFC-003 rules), so the governance gate is itself gated rather than trusted.
+  It runs in CI rather than the pre-commit hook, because it costs about 1m38s against the local gate's ~25s; run it locally with `mise run test`.
 - **Zero Plaintext**: No decrypted credentials persist on local disk; secrets are SOPS/AGE-encrypted at rest (software AGE key in v1; see Architecture above).
   The one plaintext file, the gitignored `.config/mise/.env.local`, holds only the Cloudflare account and zone IDs, which identify an account rather than authenticate to it.
 - **No Committed Secrets**: neither plaintext nor ciphertext credentials are tracked in this repository.
