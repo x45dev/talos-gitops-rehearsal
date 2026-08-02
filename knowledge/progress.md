@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.17
+version: 0.1.18
 date: 2026-08-02
 type: context
 ---
@@ -65,7 +65,8 @@ phased-status section, and the review's survey of this repo.
     latent; both call sites are now invocation-invariant.
   Surviving divergences from upstream v0.1.0, all deliberate or cosmetic:
   the yq-missing hint names `mise install` here rather than upstream's
-  toolchain-agnostic wording (correct for this repo, which does pin a toolchain);
+  toolchain-agnostic wording (correct for this repo, which provisions its toolchain
+  through `mise`, where the template deliberately assumes no toolchain manager);
   this repo's error strings keep their `RFC-003 section 5` / `PRD FR5.2` citations,
   which upstream dropped; 2-space indentation against upstream's 4; and one loop
   variable named `r` rather than `legal`.
@@ -143,8 +144,12 @@ required of v1. What follows is deferred by design, not outstanding work.
   API): unscheduled, deferred by design.
 - State persistence / DB re-hydration across ephemeral cycles: unresolved
   open question (`context.md`).
-- ADR-0010 is the only governed document still at `draft`; promote it to
-  `active` once it has seasoned (recorded 2026-07-25).
+- ~~ADR-0010 is the only governed document still at `draft`~~ **promoted to
+  `active` 2026-08-02**, having seasoned since 2026-07-25 with nothing
+  contradicting it; the same change corrected a consequence bullet that had been
+  overtaken one day after the ADR was written (feature 002's "surviving scope",
+  archived unexecuted 2026-07-26).
+  No governed document is at `draft` now.
 - Canonical promotion of the `active` ADRs (ADR-0003..0007) is a later gate:
   they should season as `active` through at least one more consuming change
   before an evidence-backed canonical review.
@@ -177,10 +182,18 @@ required of v1. What follows is deferred by design, not outstanding work.
   treating this repo as "the IDP" overstates its scope (settled by ADR-0007:
   this repo is the single-tenant rehearsal tool, the multi-customer IDP is a
   separate future project).
-- Constitution invariants 3 (idempotency bar) and 4 (zero-residue teardown) are
-  **stated but unverified**: nothing proves a converged re-run is a no-op, and teardown
-  cleans rather than checks. Accepted deliberately on 2026-07-26 (neither has bitten);
-  the archived 002 bundle records what would reopen it.
+- Three commitments are **stated but unverified**, all of them deliberately, and it is
+  worth seeing them together rather than one at a time:
+  constitution invariant 3 (the idempotency bar) - nothing proves a converged re-run is
+  a no-op;
+  constitution invariant 4 (zero-residue teardown) - teardown cleans rather than checks;
+  and the PRD Section 7 spin-up metric - uninstrumented by ADR-0010, so whether the
+  under-ten-minute target is met is honestly unknown.
+  The two invariants were accepted on 2026-07-26 (neither has bitten) and the archived
+  002 bundle records what would reopen them; the metric carries its own revisit trigger
+  in ADR-0010.
+  Feature 002 was the single vehicle that would have discharged all three, which is why
+  archiving it unexecuted left exactly this shape.
 - Devcontainer couples to two sibling repos' churn: the digest-pinned
   `devbase` image (bootstrap-workspace) and the mounted `agent-standards`
   checkout; both update manually.
