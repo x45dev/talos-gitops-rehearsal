@@ -109,7 +109,7 @@ See ADR-0006 for the full rationale and the security split behind it.
 ## Quality Standards
 
 - **Automated Hooks**: Lefthook regenerates `docs/CHANGELOG.md` and runs linting and SOPS/secrets-leak guards before every commit.
-- **CI**: `.github/workflows/ci.yml` re-runs the governance and docs gate (frontmatter, markdown, em dashes, shellcheck) on pull requests and pushes to `main`, so a commit made without the local toolchain is still checked.
+- **CI**: `.github/workflows/ci.yml` re-runs the governance and docs gate (frontmatter, the frontmatter validator's own bats suite, markdown, em dashes, shellcheck) on pull requests and pushes to `main`, so a commit made without the local toolchain is still checked.
   It installs the few tools the governance gates need and calls them directly rather than going through `mise`, and runs no cluster tests.
 - **Tested gates**: the frontmatter validator has its own `bats` suite (`tests/validate-frontmatter.bats`, 26 tests covering all nine RFC-003 rules), so the governance gate is itself gated rather than trusted.
   It runs in CI rather than the pre-commit hook, because it costs about 1m38s against the local gate's ~25s; run it locally with `mise run test`.

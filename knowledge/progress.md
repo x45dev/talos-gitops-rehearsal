@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.21
+version: 0.1.22
 date: 2026-08-02
 type: context
 ---
@@ -124,7 +124,10 @@ phased-status section, and the review's survey of this repo.
   headings, not by eye). The PLAN's line citations are left alone, being correct.
 - CI gate added (2026-07-25): `.github/workflows/ci.yml` re-runs the governance
   and docs checks (frontmatter validator, markdownlint, em dash, shellcheck) on
-  pull requests and pushes to `main`.
+  pull requests and pushes to `main`, and since 2026-08-02 also runs the validator's
+  own bats suite, which the local gate deliberately does not.
+  So CI is no longer a strict subset of `mise run lint`: it drops vale's full config
+  and the lychee link check, and adds the test suite.
   Until now every gate lived only in the local Lefthook hook, so any commit made
   without the `mise` toolchain (a cloud agent session, a fresh clone) reached
   `main` ungated.
