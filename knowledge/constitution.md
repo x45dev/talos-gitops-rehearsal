@@ -2,8 +2,8 @@
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
 status: active
-version: 0.1.7
-date: 2026-07-26
+version: 0.1.8
+date: 2026-08-02
 type: constitution
 ---
 
@@ -20,20 +20,21 @@ questions.
 This project delivers a deterministic, high-speed ephemeral Kubernetes environment for
 local development: it provisions a single Talos Linux cluster on a workstation directly
 via `talosctl` (Docker provisioner), with one in-cluster Flux loop reconciling a turnkey
-GitOps payload (`README.md` lines 1-8).
+GitOps payload (`README.md`, the opening summary).
 
 The parity it is built to buy is deliberately narrow: the GitOps workflow and the
 application/workload overlay are meant to carry over unchanged to a later cloud
 (Cluster API / AWS) deployment; the cluster-provisioning mechanism itself is not
-(`README.md` lines 1-8; `docs/planning/PRD.md` Section 1, lines 19-25; Section 5, lines
-102-118).
+(`README.md`, the opening summary; `docs/planning/PRD.md` Section 1, lines 19-25;
+Section 5, lines 102-118).
 The PRD is explicit that overstating this parity is the main way the project can
 disappoint, so the boundary is treated as a first-class requirement rather than an
 aspiration (`docs/planning/PRD.md` Section 1, lines 24-25).
 
 Secrets are kept off Git via SOPS/AGE encryption at rest, with a software AGE key
 accepted for v1 and a hardware-bound (YubiKey) key deferred as a later hardening
-milestone (`README.md` line 6; `docs/planning/PRD.md` Section 3.2, lines 62-69).
+milestone (`README.md`, the opening summary; `docs/planning/PRD.md` Section 3.2,
+lines 62-69).
 
 ## Invariants
 
@@ -41,10 +42,10 @@ These must hold throughout the project, per the cited sources:
 
 1. **No plaintext secrets in Git.** No decrypted credentials are ever committed; the
    project AGE key lives at `.config/sops/age/keys.txt` and is gitignored
-   (`docs/planning/PRD.md` Section 3.2, lines 64-65; `README.md` "Quality Standards",
-   line 64).
+   (`docs/planning/PRD.md` Section 3.2, lines 64-65; `README.md` "Quality Standards").
    `mise`'s SOPS integration is configured to fail loudly rather than silently on
-   decryption failure (`sops.strict = true`, `.config/mise/config.toml` line 44).
+   decryption failure (the `sops.strict = true` setting in
+   `.config/mise/config.toml`).
 2. **The CAPI-consumability contract.** Nothing under `clusters/workload/` may assume
    how the cluster it runs on was provisioned: no `talosctl`-specific node names or
    labels, no local filesystem paths (`hostPath`, home-directory paths), and no
@@ -80,9 +81,10 @@ These must hold throughout the project, per the cited sources:
   `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` "Decisions", item 1, lines
   192-193).
 - **Target environment is a single Ubuntu 26.04 workstation**, not a shared or
-  multi-user environment (`docs/planning/PRD.md` header, line 12; corroborated by
-  repeated "single-developer local dev tool" framing of accepted security gaps in
-  `clusters/workload/README.md` "Known limitations", lines 91-129).
+  multi-user environment (`docs/planning/PRD.md`, the "Target Environment" header
+  field; corroborated by repeated "single-developer local dev tool" framing of
+  accepted security gaps in `clusters/workload/README.md` "Known limitations",
+  lines 91-129).
 - **Host-native toolchain on the laptop, not a devcontainer.** The full toolchain is
   `mise`-managed; the only Docker requirement is that `talosctl`'s provisioner reach a
   Docker daemon socket (`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` Phase 1,
@@ -96,8 +98,8 @@ These must hold throughout the project, per the cited sources:
   (`docs/planning/PRD.md` Section 2, item 1, lines 31-32).
 - **Version pins are load-bearing, not incidental choices**: Cilium 1.18.11 (not
   1.19.x - see ADR-0002), Kubernetes 1.35.x, Flux `2.9.0` (pinned because Flux's
-  Cilium-adoption reconcile behavior is version-dependent, `.config/mise/config.toml`
-  line 61).
+  Cilium-adoption reconcile behavior is version-dependent, the `flux2` entry in
+  `.config/mise/config.toml`'s `[tools]` table).
 
 ## Effective definition of done
 

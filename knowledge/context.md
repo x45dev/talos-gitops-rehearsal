@@ -2,7 +2,7 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: active
-version: 0.2.8
+version: 0.2.9
 date: 2026-08-02
 type: context
 ---
@@ -16,7 +16,7 @@ Every claim is cited or marked as an inference.
 ## Product context
 
 The project's sole user is its own author, operating a single Ubuntu 26.04 workstation
-(`docs/planning/PRD.md` header, line 12).
+(`docs/planning/PRD.md`, the "Target Environment" header field).
 Every accepted security/operational gap in the repository is justified in these terms -
 "single-user local dev tool" or "single-developer local dev tool" - and each is flagged
 to be revisited only if the tool ever serves more than one person
@@ -25,7 +25,7 @@ to be revisited only if the tool ever serves more than one person
 The product itself is a local, ephemeral, GitOps-managed Kubernetes environment used as
 a development rehearsal for a future cloud (CAPA/AWS) deployment: the workflow and
 application-overlay carry over, the provisioning substrate does not
-(`README.md` lines 1-8; `docs/planning/PRD.md` Section 5).
+(`README.md`, the opening summary; `docs/planning/PRD.md` Section 5).
 
 ## Technical context (stack and pinned versions)
 
@@ -40,13 +40,15 @@ application-overlay carry over, the provisioning substrate does not
   adopted in place by a Flux `HelmRelease` with matching name/namespace/version/values
   (`docs/planning/PRD.md` Section 3.1, lines 49-53).
 - **GitOps:** FluxCD, pinned to `2.9.0` because its Cilium-adoption reconcile behavior
-  is version-dependent (`.config/mise/config.toml` line 61).
+  is version-dependent (the `flux2` entry in `.config/mise/config.toml`'s `[tools]`
+  table).
   A single in-cluster Flux instance reconciles `clusters/workload/`
-  (`README.md` line 34).
+  (`README.md` "Architecture").
 - **Secrets:** SOPS + AGE.
   Software AGE key for v1 (gitignored, at `.config/sops/age/keys.txt`), user key as a
   co-recipient for auto-decrypt; `mise`'s SOPS integration is set to fail loudly on
-  decryption failure (`sops.strict = true`, `.config/mise/config.toml` line 44).
+  decryption failure (the `sops.strict = true` setting in
+  `.config/mise/config.toml`).
   Hardware-bound (YubiKey) key is a deferred hardening milestone
   (`docs/planning/PRD.md` Section 3.2).
 - **Task orchestration:** `mise`, host-native on the laptop (ADR-0003).
@@ -71,13 +73,13 @@ application-overlay carry over, the provisioning substrate does not
   float otherwise - and the load-bearing pins are the ones recorded in
   `knowledge/progress.md`.
 - **Git hooks:** Lefthook, regenerating `docs/CHANGELOG.md` and running lint and
-  SOPS/secrets-leak guards before every commit (`README.md` line 79;
+  SOPS/secrets-leak guards before every commit (`README.md` "Quality Standards";
   `.config/lefthook.yaml`).
 - **Prose linting:** vale and markdownlint, enforcing this project's own documentation
   conventions - no em dashes, one sentence per line
-  (`README.md` line 81; `.config/vale/`, `.config/markdownlint/`).
+  (`README.md` "Quality Standards"; `.config/vale/`, `.config/markdownlint/`).
 - **Changelog:** git-cliff, generating `docs/CHANGELOG.md` from Conventional Commits;
-  explicitly never hand-edited (`README.md` line 39; `.config/cliff.toml`).
+  explicitly never hand-edited (`README.md` "Quality Standards"; `.config/cliff.toml`).
 - **Turnkey payload components** (all Flux-reconciled under `clusters/workload/`):
   - cert-manager `v1.20.3` with a local Root CA issuer chain
     (`selfsigned` -> `root-ca` -> `local-ca`)
