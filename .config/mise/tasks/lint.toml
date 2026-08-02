@@ -126,4 +126,4 @@ alias = "l"
 # backend:lint/frontend:lint were removed (2026-07-12): dead references to tasks that don't
 # exist in this repo (there is no backend/frontend app code here, only infra), which broke
 # every `mise run lint` invocation unconditionally.
-depends = ["lint:shfmt", "lint:shellcheck", "lint:links", "lint:vale", "lint:frontmatter"]
+depends = ["lint:shfmt", "lint:shellcheck", "lint:links", "lint:vale", "lint:frontmatter", "test:frontmatter"]

@@ -112,7 +112,7 @@ See ADR-0006 for the full rationale and the security split behind it.
 - **CI**: `.github/workflows/ci.yml` re-runs the governance and docs gate (frontmatter, the frontmatter validator's own bats suite, markdown, em dashes, shellcheck) on pull requests and pushes to `main`, so a commit made without the local toolchain is still checked.
   It installs the few tools the governance gates need and calls them directly rather than going through `mise`, and runs no cluster tests.
 - **Tested gates**: the frontmatter validator has its own `bats` suite (`tests/validate-frontmatter.bats`, 26 tests covering all nine RFC-003 rules), so the governance gate is itself gated rather than trusted.
-  It runs in CI rather than the pre-commit hook, because it costs about 1m38s against the local gate's ~25s; run it locally with `mise run test`.
+  It runs in both the pre-commit gate and CI. `mise` skips it unless `tests/` or the validator changed, so it costs ~0.3s on a normal commit and ~37s on one that can actually break it; run it directly with `mise run test`.
 - **Zero Plaintext**: No decrypted credentials persist on local disk; secrets are SOPS/AGE-encrypted at rest (software AGE key in v1; see Architecture above).
   The one plaintext file, the gitignored `.config/mise/.env.local`, holds only the Cloudflare account and zone IDs, which identify an account rather than authenticate to it.
 - **No Committed Secrets**: neither plaintext nor ciphertext credentials are tracked in this repository.

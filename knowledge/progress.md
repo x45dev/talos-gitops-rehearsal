@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.22
+version: 0.1.23
 date: 2026-08-02
 type: context
 ---
@@ -83,15 +83,31 @@ phased-status section, and the review's survey of this repo.
   Reindented from upstream's 4 spaces to this repo's 2, the same treatment the
   validator got; a future reconciliation should normalise leading whitespace before
   diffing, and the file's header records the exact command.
-  **It runs in CI, not in the pre-commit hook**, and that is a deliberate cost call:
-  measured 2026-08-02, `bats tests/validate-frontmatter.bats` takes 1m22s and
-  `mise run test` 1m38s (26 tests at ~0.95s a validator run) against ~25s for the
-  entire local gate, so putting it in Lefthook would roughly quintuple every commit
-  to re-prove rules that only change when the validator changes.
-  CI is where this repo's governance enforcement is already binding, and it covers
-  the ungated paths (cloud agent sessions, fresh clones) that CI exists for.
-  `mise run test` (alias `t`) runs it locally; the task fails loudly rather than
+  It runs in **both** the pre-commit gate and CI.
+  The `test:frontmatter` task declares `sources = ["tests/*.bats",
+  "scripts/validate-frontmatter.sh"]`, so mise skips it unless one of those changed:
+  measured warm on 2026-08-02 by timing the whole `mise run lint` aggregate the way
+  the hook invokes it, an unchanged tree costs 0.44s and 0.38s on consecutive runs,
+  while touching the validator costs about 25s and runs all 26 tests.
+  So the steady-state cost is a fraction of a second and the full cost lands on
+  exactly the commits that can break it.
+  It earns the place: seeding a semantic regression the other linters cannot see
+  (disabling rule 9c with a `false &&`, which shellcheck passes clean) makes
+  `mise run lint` exit 1 on `not ok 21 spec bundle: fails when the bundle has no
+  spec.md`. Before the suite joined the aggregate that regression reached `main`,
+  caught only by CI.
+  It is in CI as well, deliberately: CI checks out fresh and holds no mise cache, so
+  it always runs, and it covers the ungated paths (cloud agent sessions, fresh
+  clones) that CI exists for. Local caching is a speed optimisation, not the
+  enforcement point.
+  `mise run test` (alias `t`) runs it directly; the task fails loudly rather than
   skipping if `bats` is absent, matching the `lint:frontmatter` two-state rule.
+  **A correction worth keeping:** this suite was first shipped *excluded* from the
+  local gate, on a measured 1m22s-1m38s per commit. That number was real but was a
+  cold first run taken straight after `mise install` provisioned the toolchain, and
+  it was generalised to every commit without re-measuring warm or accounting for the
+  `sources` cache. Both the number and the conclusion drawn from it were corrected
+  the same day. Time a task the way it will actually be invoked, and more than once.
 - Citations into churning files anchored, not numbered (2026-08-02).
   `constitution.md` and `context.md` cited `README.md` and
   `.config/mise/config.toml` by line number, and nine of those citations had
@@ -125,9 +141,9 @@ phased-status section, and the review's survey of this repo.
 - CI gate added (2026-07-25): `.github/workflows/ci.yml` re-runs the governance
   and docs checks (frontmatter validator, markdownlint, em dash, shellcheck) on
   pull requests and pushes to `main`, and since 2026-08-02 also runs the validator's
-  own bats suite, which the local gate deliberately does not.
-  So CI is no longer a strict subset of `mise run lint`: it drops vale's full config
-  and the lychee link check, and adds the test suite.
+  own bats suite.
+  CI remains a subset of `mise run lint`: it drops vale's full config and the lychee
+  link check, both of which stay local.
   Until now every gate lived only in the local Lefthook hook, so any commit made
   without the `mise` toolchain (a cloud agent session, a fresh clone) reached
   `main` ungated.
