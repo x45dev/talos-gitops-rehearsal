@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **document:** Sync stale git-credentials/deploy-key facts in context.md; lint already clean
 - **document:** Mark ADR-0004's deploy-key decision superseded in place
 - **governance:** Adopt the validator's bats suite from rka-template v0.1.0
+- **governance:** Correct ADR-0010's overtaken consequence and promote it to active
 
 ### Fixed
 

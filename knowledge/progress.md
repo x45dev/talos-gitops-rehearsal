@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.18
+version: 0.1.19
 date: 2026-08-02
 type: context
 ---
@@ -194,15 +194,21 @@ required of v1. What follows is deferred by design, not outstanding work.
   in ADR-0010.
   Feature 002 was the single vehicle that would have discharged all three, which is why
   archiving it unexecuted left exactly this shape.
-- Devcontainer couples to two sibling repos' churn: the digest-pinned
-  `devbase` image (bootstrap-workspace) and the mounted `agent-standards`
-  checkout; both update manually.
-  Re-pinned 2026-07-28 to `sha256:a9689b11`, replacing the 2026-07-19 pin,
-  which predated the 2026-07-22 base rebuild (`2213a77`).
-  That rebuild baked the agent-config wiring into the base as
-  `link-agent-config`, and `.devcontainer/devcontainer.json` now calls it
-  instead of inlining a third copy of the skill list.
-  This repo is a **second, cross-repo `devbase` digest pin site**;
-  bootstrap-workspace's own re-pin tooling assumes its compose file is the only
-  one, so a base rebuild there does not reach this repo (filed upstream as
-  `x45dev/bootstrap-workspace#50`).
+- ~~Devcontainer couples to two sibling repos' churn: the digest-pinned `devbase`
+  image (bootstrap-workspace) and the mounted `agent-standards` checkout.~~
+  **Retired 2026-08-02: the coupling no longer exists.**
+  The 2026-07-31 public transition made `.devcontainer/` self-contained - it builds
+  from Microsoft's public `devcontainers/base:ubuntu-24.04` and installs mise and the
+  Docker CLI itself, and `compose.yaml` mounts only the project and the AGE key.
+  There is no `devbase` digest to re-pin and no `agent-standards` checkout to mount,
+  so neither sibling repo can reach this one any more, and the second-pin-site problem
+  filed as `x45dev/bootstrap-workspace#50` no longer applies here.
+  ADR-0006 recorded this in its post-publication note on 2026-07-31; this entry was
+  missed in that pass and kept describing the pre-publication design as a live
+  limitation for two days.
+  Verified 2026-08-02 by reading `.devcontainer/{Dockerfile,compose.yaml,devcontainer.json}`
+  and by `grep -rn 'devbase\|agent-standards' .devcontainer/`, which matches only the
+  Dockerfile comment recording the historical origin.
+  What replaces it is smaller and worth stating plainly: the image now tracks a public
+  upstream base by tag rather than digest, so a rebuild picks up whatever
+  `ubuntu-24.04` points at that day.
