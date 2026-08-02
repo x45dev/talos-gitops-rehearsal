@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.19
+version: 0.1.20
 date: 2026-08-02
 type: context
 ---
@@ -92,6 +92,23 @@ phased-status section, and the review's survey of this repo.
   the ungated paths (cloud agent sessions, fresh clones) that CI exists for.
   `mise run test` (alias `t`) runs it locally; the task fails loudly rather than
   skipping if `bats` is absent, matching the `lint:frontmatter` two-state rule.
+- Citations into churning files anchored, not numbered (2026-08-02).
+  `constitution.md` and `context.md` cited `README.md` and
+  `.config/mise/config.toml` by line number, and nine of those citations had
+  drifted onto unrelated lines: the Flux `2.9.0` pin pointed at a `# --- Tools ---`
+  comment, `sops.strict` and two others at blank lines, and the single-in-cluster-Flux
+  claim at a `lefthook.yaml` entry in the directory tree.
+  The drift predates 2026-08-02 and was found by resolving every citation in
+  `knowledge/` against its target rather than by anything failing.
+  These now cite a stable anchor instead - a section heading (`README.md`
+  "Quality Standards", "Architecture", the opening summary) or the configuration key
+  itself (the `flux2` entry in `[tools]`, the `sops.strict = true` setting) - so they
+  survive edits to the file they point at.
+  **The convention this establishes:** cite a file that still churns by anchor, and
+  keep line numbers for the frozen historical documents under `docs/planning/`, where
+  they are stable and precise. Not yet gated; a line number is trivially checkable for
+  existence but not for still meaning what it meant, which is exactly how these nine
+  drifted while pointing at real lines the whole time.
 - CI gate added (2026-07-25): `.github/workflows/ci.yml` re-runs the governance
   and docs checks (frontmatter validator, markdownlint, em dash, shellcheck) on
   pull requests and pushes to `main`.
@@ -164,6 +181,16 @@ required of v1. What follows is deferred by design, not outstanding work.
 - ~~The validator has no tests of its own.~~ **done 2026-08-02**: upstream's
   `tests/validate-frontmatter.bats` adopted, 26 tests green in CI (see
   "What works").
+- The line-number citations into `docs/planning/` are **not audited**. The
+  2026-08-02 pass fixed the citations into churning files and stopped there; roughly
+  78 citations point into the PRD, the PLAN, and the ZOR reviews, and spot checks
+  found at least one already off (the constitution cites "Section 1, lines 19-25"
+  where Section 1 begins at line 24).
+  Those documents are ungoverned working material (ADR-0008) and mostly frozen, so
+  the drift is slower and the stakes lower, but "mostly frozen" is not "frozen":
+  ADR-0010 edited PRD Section 7 as recently as 2026-07-25.
+  Auditing them is a self-contained piece of work, deliberately not bundled into the
+  smaller fix.
 - **Open question for the maintainer, raised 2026-08-02.** `rka-template` is no
   longer a repo to copy conventions out of by hand: it is now a Copier template
   with a `copier.yml` and an answers file, designed to be applied and re-applied.
