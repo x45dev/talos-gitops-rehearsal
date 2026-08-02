@@ -76,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **governance:** Correct ADR-0010's overtaken consequence and promote it to active
 - **governance:** Retire the stale devcontainer coupling limitation
 - **governance:** Cite churning files by anchor instead of line number
+- **governance:** Drop the PRD's drifting line ranges, keep its Section references
 
 ### Fixed
 
