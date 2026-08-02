@@ -2,8 +2,8 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: active
-version: 0.2.6
-date: 2026-08-01
+version: 0.2.7
+date: 2026-08-02
 type: context
 ---
 
@@ -120,16 +120,21 @@ application-overlay carry over, the provisioning substrate does not
 - **Release-pinned upstream tracking.** RKA, `agent-standards`, and the
   `rka-template` conventions are consumed only at tagged releases, never at
   upstream HEAD (RKA ADR-0012 release trains).
-  The current pin is `rka-template` v0.4.0 (verified 2026-07-22).
+  The current pin is `rka-template` v0.1.0 (verified 2026-08-02).
+  That is not a downgrade from the v0.4.0 pinned on 2026-07-22: upstream re-cut
+  `rka-template` on 2026-07-31 as a standalone Copier template with a fresh
+  single-commit history, and v0.1.0 is the first release of that new line.
+  The v0.2.0-v0.4.0 tags no longer exist upstream, so the old pin no longer
+  resolves.
   The `.devcontainer/Dockerfile` no longer pins a shared base image; it builds
   from a public base per ADR-0006's post-publication note.
-  One scoped exception stands: the RKA ADR-0013 spec-bundle lifecycle (validator
-  rules 8, 9a, 9b) was adopted early on 2026-07-24 by maintainer decision, ahead
-  of any `rka-template` release carrying it, because this repo was the upstream
-  rules' motivating example (ADR-0009).
-  The exception is scoped to ADR-0013 alone and carries a reconciliation
-  obligation at the next release that ships those rules; ADR-0012 governs
-  everything else.
+  The scoped ADR-0013 exception (validator rules 8, 9a, 9b adopted early on
+  2026-07-24, ahead of any `rka-template` release carrying them, because this
+  repo was the upstream rules' motivating example) is **discharged as of
+  2026-08-02**: v0.1.0 ships those rules, this repo's validator was reconciled
+  against it, and the surviving divergences are recorded in
+  `knowledge/progress.md`.
+  ADR-0012 governs everything else, unchanged.
 - **Governed feature specs.** Feature specs live as governed bundles under
   `knowledge/specs/<NNN>-<slug>/` with `<role>-<NNN>-<slug>` ids, one shared
   `status` per bundle, and an `Extraction record` on archival (RKA ADR-0013 via

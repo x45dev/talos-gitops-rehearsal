@@ -32,10 +32,15 @@ set -euo pipefail
 #      9b. a bundle whose tasks.md holds at least one checkbox and no unchecked
 #          checkbox must be archived. This catches a shipped feature whose spec
 #          was never retired and whose knowledge was never extracted.
+#      9c. a bundle directory must contain spec.md (spec.md required, plan.md and
+#          tasks.md optional), and every .md in the bundle sits directly in the
+#          bundle directory - a file nested deeper would otherwise match neither
+#          the role check nor the bundle status set, and escape 9a entirely.
 # Rules 8 and 9 are the ADR-0013 spec-lifecycle gate, adopted early from the RKA
-# reference repo by recorded maintainer decision (this repo's ADR-0009); when a
-# tagged rka-template release ships them, reconcile this script against the
-# released one and note any divergence in knowledge/progress.md.
+# reference repo by recorded maintainer decision (this repo's ADR-0009).
+# Reconciled 2026-08-02 against the released `rka-template` v0.1.0, discharging
+# ADR-0009's standing obligation; the surviving divergences are recorded in
+# knowledge/progress.md.
 # The reserved OKF bundle-structure files (index.md, log.md) are not governed
 # documents: they are excluded from rules 1-6 and 8-9 and validated only by
 # rule 7.
@@ -46,7 +51,16 @@ set -euo pipefail
 # (Jinja comment open); counts are tracked with explicit counter variables
 # instead of parameter-expansion length operators.
 
+# Normalise away trailing slashes before any path derivation: the bundle-relative
+# path below is produced by stripping this prefix, and "knowledge/" would defeat
+# the strip, silently disabling rules 9a/9b (a fail-open on exactly the case they
+# exist to catch). Proven 2026-08-02: invoked as `knowledge/`, a bundle with mixed
+# statuses passed 9a and surfaced instead as two spurious rule-4 stem mismatches,
+# so the gate misdiagnosed rather than merely missed.
 KNOWLEDGE_DIR="${1:-knowledge}"
+while [[ "$KNOWLEDGE_DIR" == */ && "$KNOWLEDGE_DIR" != "/" ]]; do
+  KNOWLEDGE_DIR="${KNOWLEDGE_DIR%/}"
+done
 REQUIRED_FIELDS=("id" "title" "status" "version" "date" "type")
 LEGAL_STATUSES=("draft" "active" "canonical" "archived")
 LEGAL_ADR_STATUSES=("proposed" "accepted" "superseded")
@@ -56,6 +70,8 @@ errors=0
 declare -A id_to_file
 declare -A bundle_statuses
 declare -A bundle_tasks_file
+declare -A bundle_has_spec
+declare -A bundle_seen
 file_count=0
 governed_rel=()
 governed_count=0
@@ -107,22 +123,36 @@ while IFS= read -r -d '' file; do
   governed_count=$((governed_count + 1))
 
   # A spec bundle is knowledge/specs/<NNN>-<slug>/<role>.md (RFC-003 sections
-  # 4, 5).
+  # 4, 5). Rule 9c: anything under specs/ that is not exactly that shape is
+  # rejected here rather than falling through to the generic stem convention,
+  # which would let it escape 9a. Proven 2026-08-02: before this branch existed,
+  # specs/<bundle>/sub/notes.md at a different status than its bundle passed the
+  # whole gate, because the old `[^/]+` role pattern simply did not match it.
   spec_bundle=""
   spec_role=""
-  if [[ "$rel" =~ ^specs/([^/]+)/([^/]+)\.md$ ]]; then
+  if [[ "$rel" =~ ^specs/([^/]+)/(.+)\.md$ ]]; then
     spec_bundle="${BASH_REMATCH[1]}"
     spec_role="${BASH_REMATCH[2]}"
-    valid_role=false
-    for r in "${SPEC_ROLES[@]}"; do
-      [[ "$spec_role" == "$r" ]] && valid_role=true && break
-    done
-    if [[ "$valid_role" == false ]]; then
-      printf 'ERROR: %s: "%s.md" is not a known spec-bundle role (must be one of: spec, plan, tasks) per RFC-003 section 5\n' \
-        "$file" "$spec_role" >&2
+    bundle_seen["$spec_bundle"]=1
+    if [[ "$spec_role" == */* ]]; then
+      printf 'ERROR: %s: a spec-bundle document must sit directly in the bundle directory (%s/specs/%s/), not in a subdirectory, per RFC-003 section 5\n' \
+        "$file" "$KNOWLEDGE_DIR" "$spec_bundle" >&2
       errors=$((errors + 1))
+      spec_bundle=""
+      spec_role=""
+    else
+      valid_role=false
+      for r in "${SPEC_ROLES[@]}"; do
+        [[ "$spec_role" == "$r" ]] && valid_role=true && break
+      done
+      if [[ "$valid_role" == false ]]; then
+        printf 'ERROR: %s: "%s.md" is not a known spec-bundle role (must be one of: spec, plan, tasks) per RFC-003 section 5\n' \
+          "$file" "$spec_role" >&2
+        errors=$((errors + 1))
+      fi
+      [[ "$spec_role" == "spec" ]] && bundle_has_spec["$spec_bundle"]=1
+      [[ "$spec_role" == "tasks" ]] && bundle_tasks_file["$spec_bundle"]="$file"
     fi
-    [[ "$spec_role" == "tasks" ]] && bundle_tasks_file["$spec_bundle"]="$file"
   fi
 
   block=$(extract_frontmatter "$file")
@@ -168,7 +198,7 @@ while IFS= read -r -d '' file; do
 
   # Rule 8: an archived document must carry its extraction record (RFC-002
   # section 3). Within a spec bundle the record lives once, in spec.md, and
-  # covers the bundle.
+  # covers the bundle - safe only because rule 9c guarantees a spec.md exists.
   if [[ "$status" == "archived" ]]; then
     if [[ -n "$spec_bundle" && "$spec_role" != "spec" ]]; then
       :
@@ -249,12 +279,25 @@ while IFS= read -r -d '' file; do
   fi
 done < <(find "$KNOWLEDGE_DIR" -name "*.md" -print0 | sort -z)
 
+# Rule 9c: every spec bundle must hold a spec.md. Without this, an archived
+# bundle of plan.md + tasks.md alone would carry no extraction record anywhere and
+# rule 8's intra-bundle exemption would pass it - the fail-open case, reproduced
+# against this script on 2026-08-02 before the rule was ported.
+for bundle in "${!bundle_seen[@]}"; do
+  if [[ -z "${bundle_has_spec[$bundle]:-}" ]]; then
+    printf 'ERROR: %s/specs/%s: spec bundle has no spec.md (spec.md is required; plan.md and tasks.md are optional) per RFC-003 section 5\n' \
+      "$KNOWLEDGE_DIR" "$bundle" >&2
+    errors=$((errors + 1))
+  fi
+done
+
 # Rule 9a: a spec bundle has one lifecycle, so its documents share a status
 # (RFC-003 sections 4, 5).
 for bundle in "${!bundle_statuses[@]}"; do
   read -ra bundle_status_list <<< "${bundle_statuses[$bundle]}"
   distinct=$(printf '%s\n' "${bundle_status_list[@]}" | sort -u)
-  if (($(printf '%s\n' "$distinct" | wc -l) > 1)); then
+  distinct_count=$(printf '%s\n' "$distinct" | wc -l)
+  if ((distinct_count > 1)); then
     printf 'ERROR: %s/specs/%s: spec bundle has mixed status values (%s); a bundle shares one lifecycle (RFC-003 section 4)\n' \
       "$KNOWLEDGE_DIR" "$bundle" "$(printf '%s' "$distinct" | tr '\n' ' ' | sed 's/ $//')" >&2
     errors=$((errors + 1))
@@ -268,8 +311,8 @@ for bundle in "${!bundle_tasks_file[@]}"; do
   tasks_file="${bundle_tasks_file[$bundle]}"
   total=$(grep -cE '^[[:space:]]*[-*][[:space:]]+\[[ xX]\]' "$tasks_file" || true)
   ((total == 0)) && continue
-  open=$(grep -cE '^[[:space:]]*[-*][[:space:]]+\[[[:space:]]\]' "$tasks_file" || true)
-  ((open > 0)) && continue
+  open_boxes=$(grep -cE '^[[:space:]]*[-*][[:space:]]+\[[[:space:]]\]' "$tasks_file" || true)
+  ((open_boxes > 0)) && continue
   read -ra bundle_status_list <<< "${bundle_statuses[$bundle]:-}"
   for s in "${bundle_status_list[@]}"; do
     if [[ "$s" != "archived" ]]; then

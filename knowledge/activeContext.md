@@ -2,8 +2,8 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.2.1
-date: 2026-07-28
+version: 0.2.2
+date: 2026-08-02
 type: context
 ---
 
@@ -62,9 +62,16 @@ Recorded as a scoped exception in `knowledge/adr/ADR-0009.md`: rules 8, 9a, and
 `scripts/validate-frontmatter.sh`, and both bundles now live under
 `knowledge/specs/` (`docs/specs/` is gone).
 ADR-0012 still governs every other upstream convention.
-Outstanding obligation: when a tagged `rka-template` release ships these rules,
-reconcile the ported script against the released one and record any divergence
-in `knowledge/progress.md`.
+
+**Update 2026-08-02: the reconciliation obligation is discharged.**
+Upstream re-cut `rka-template` on 2026-07-31 as a standalone Copier template with
+a fresh single-commit history, and its first release v0.1.0 is the first tagged
+release to ship rules 8 and 9.
+The v0.4.0 pin recorded above therefore no longer resolves: v0.2.0-v0.4.0 are gone
+upstream, and `knowledge/context.md` now pins v0.1.0.
+Reconciling found three fail-opens the early port lacked, each reproduced against
+this repo's script before being fixed; the full divergence record is in
+`knowledge/progress.md`.
 
 ## Next steps (to-do)
 
@@ -106,9 +113,19 @@ in `knowledge/progress.md`.
       Canonical promotion of the `active` ADRs remains a later gate, now
       conditioned solely on at least one more consuming change (the "season
       through Phase 4" half was retired 2026-07-28; see `progress.md`).
-- [ ] **Reconcile the ported validator** against the released one when a tagged
-      `rka-template` release ships rules 8 and 9 (ADR-0009's standing
-      obligation); record any divergence in `knowledge/progress.md`.
+- [x] **Reconcile the ported validator** against the released one (2026-08-02):
+      ADR-0009's standing obligation is discharged. `rka-template` was re-cut
+      upstream on 2026-07-31 as a standalone Copier template, and its first
+      release v0.1.0 is the first to ship rules 8 and 9. Three divergences
+      found, each a fail-open the early port lacked (rule 9c absent; nested
+      bundle documents escaping 9a; a trailing-slash argument disabling 9a/9b),
+      each reproduced against this repo's script before being fixed.
+      Recorded in `knowledge/progress.md`; the pin in `knowledge/context.md`
+      moves v0.4.0 -> v0.1.0, because the old tag no longer exists upstream.
+- [ ] **Adopt upstream's validator test suite**: v0.1.0 ships
+      `tests/validate-frontmatter.bats` and this repo has none.
+- [ ] **Decide whether this repo becomes a Copier consumer** of the re-cut
+      `rka-template` (see `knowledge/progress.md`); left open for the maintainer.
 - [x] **Close the orphaned spin-up commitment** (2026-07-25, spec 002 T015): recorded
       as ADR-0010. The metric stands but is deliberately uninstrumented; PRD Section 7,
       PLAN Phase 4 item 3, and the constitution's definition of done no longer claim a

@@ -2,8 +2,8 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.15
-date: 2026-07-28
+version: 0.1.16
+date: 2026-08-02
 type: context
 ---
 
@@ -32,11 +32,45 @@ phased-status section, and the review's survey of this repo.
 - Load-bearing pins recorded with rationale: Cilium 1.18.11 (ADR-0002,
   1.19.x breaks host-network DNS on Talos 1.13), Flux 2.9.0.
 - Frontmatter gate restored and extended: `scripts/validate-frontmatter.sh`
-  carries the `rka-template` v0.4.0 rules 1-7 plus the ADR-0013 rules 8, 9a and
-  9b (ported early per ADR-0009), and passes green on all 20 governed documents;
-  the `lint:frontmatter` task hard-fails if the script goes missing.
+  carries rules 1-7 plus the ADR-0013 rules 8, 9a, 9b and 9c, and passes green on
+  all 20 governed documents; the `lint:frontmatter` task hard-fails if the script
+  goes missing.
+  Rules 8 and 9 were ported early per ADR-0009 and reconciled against the released
+  `rka-template` v0.1.0 on 2026-08-02 (below), which is where 9c came from.
 - Upstream conventions verified current (2026-07-22 survey): the released
-  RKA, `agent-standards`, and `rka-template` v0.4.0 conventions are all applied.
+  RKA, `agent-standards`, and `rka-template` conventions are all applied.
+- Validator reconciled against the released upstream (2026-08-02), discharging
+  ADR-0009's standing obligation.
+  Upstream re-cut `rka-template` on 2026-07-31 as a standalone Copier template
+  with a fresh single-commit history; its first release, v0.1.0, is the first
+  tagged release to ship rules 8 and 9, so the obligation fired.
+  The v0.2.0-v0.4.0 tags no longer exist upstream, so this repo's recorded
+  v0.4.0 pin had stopped resolving; `context.md` now pins v0.1.0.
+  Three divergences were found, all of them the early port lacking upstream
+  hardening, and all three were reproduced against this repo's script before
+  being fixed:
+  - **Rule 9c was absent** (a bundle must hold `spec.md`). An archived bundle of
+    `plan.md` + `tasks.md` alone carried no extraction record anywhere and rule
+    8's intra-bundle exemption passed it: a clean fail-open, `exit 0`.
+  - **Nested bundle documents escaped rule 9a.** The old `[^/]+` role pattern did
+    not match `specs/<bundle>/sub/notes.md` at all, so such a file fell through to
+    the generic stem convention and never joined its bundle's status set; a nested
+    document at `canonical` inside an `active` bundle passed the whole gate.
+  - **A trailing slash on the argument disabled rules 9a/9b.** Invoked as
+    `knowledge/`, the prefix strip that derives the bundle-relative path failed,
+    so no file matched the bundle pattern. The observed symptom is worse than
+    upstream's comment suggests: rather than merely missing the violation, the gate
+    misdiagnosed it, reporting a mixed-status bundle as two spurious rule-4 stem
+    mismatches. Neither call site passes a trailing slash today, so this was
+    latent; both call sites are now invocation-invariant.
+  Surviving divergences from upstream v0.1.0, all deliberate or cosmetic:
+  the yq-missing hint names `mise install` here rather than upstream's
+  toolchain-agnostic wording (correct for this repo, which does pin a toolchain);
+  this repo's error strings keep their `RFC-003 section 5` / `PRD FR5.2` citations,
+  which upstream dropped; 2-space indentation against upstream's 4; and one loop
+  variable named `r` rather than `legal`.
+  One divergence is **not** yet closed and is tracked below: upstream v0.1.0 ships
+  `tests/validate-frontmatter.bats`, and this repo has no tests for its validator.
 - CI gate added (2026-07-25): `.github/workflows/ci.yml` re-runs the governance
   and docs checks (frontmatter validator, markdownlint, em dash, shellcheck) on
   pull requests and pushes to `main`.
@@ -99,9 +133,22 @@ required of v1. What follows is deferred by design, not outstanding work.
   unexecuted (2026-07-26) and that trigger can now never fire.
   The surviving condition is unchanged and still untriggered: no consuming
   change has landed against these ADRs since they went `active` on 2026-07-22.
-- Reconcile the early-ported validator rules 8/9 against the released version
-  when a tagged `rka-template` release ships them, and record any divergence
-  here (ADR-0009's standing obligation).
+- ~~Reconcile the early-ported validator rules 8/9 against the released
+  version~~ **done 2026-08-02** (see "What works"); ADR-0009's standing
+  obligation is discharged.
+- The validator has no tests of its own. Upstream `rka-template` v0.1.0 ships
+  `tests/validate-frontmatter.bats`, which this repo has not adopted; every rule
+  here has been proven by one-off seeded violation instead, which proves the rule
+  once and then leaves nothing standing behind it. Adopting the suite needs `bats`
+  in the `mise` toolchain and a task wired into `lint` and CI.
+- **Open question for the maintainer, raised 2026-08-02.** `rka-template` is no
+  longer a repo to copy conventions out of by hand: it is now a Copier template
+  with a `copier.yml` and an answers file, designed to be applied and re-applied.
+  Whether this repo should become a Copier consumer of it - gaining `copier update`
+  as the reconciliation mechanism, at the cost of accepting the template's layout
+  where this repo has diverged - is an architectural call that has not been made,
+  and it is the sort of decision ADR-0012's release-train discipline exists to
+  frame. Left open deliberately rather than decided unattended.
 
 ## Known issues / limitations
 
