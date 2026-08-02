@@ -45,13 +45,32 @@ if [ ! -d "tests" ]; then
   echo "No tests/ directory, skipping."
   exit 0
 fi
-# Same two-state distinction the lint:frontmatter gate makes: a gate that cannot
-# run must fail loudly rather than skip. If the suite is present, bats must be too.
+# FAILS OPEN when bats is absent, and this is a deliberate reversal of the
+# lint:frontmatter pattern next door.
+#
+# lint:frontmatter hard-fails on a missing scripts/validate-frontmatter.sh, and it is
+# right to: that is repo content, tracked in git, and its absence means someone
+# deleted a gate. bats is not repo content. It is a machine-local, version-managed
+# tool that legitimately does not exist yet in a fresh clone before `mise install`,
+# in a contributor's environment, or in the isolated worktree no-mistakes commits
+# inside.
+#
+# Since this task joined the `lint` aggregate it runs in the Lefthook pre-commit
+# hook, so hard-failing there would block every commit in those environments -
+# including the commit that installs the toolchain. That is the same trap the
+# sops-integrity-check guard in .config/lefthook.yaml documents, and it fails open
+# for the same reason.
+#
+# Nothing is lost by skipping: CI runs this suite unconditionally via npx on a fresh
+# checkout, so the enforcement point still catches what a skipped local run would
+# have. A loud warning, not a silent pass, so the skip is visible.
 if ! command -v bats > /dev/null 2>&1; then
-  echo "ERROR: tests/ exists but bats is not on PATH; the test gate cannot run." >&2
-  echo "       Fix: provision the pinned toolchain by running: mise install" >&2
-  exit 1
+  echo "WARNING: bats is not on PATH, so the validator's test suite is being SKIPPED." >&2
+  echo "         This is a fail-open: CI runs the same suite and will catch anything" >&2
+  echo "         missed here. To run it locally, provision the toolchain: mise install" >&2
+  exit 0
 fi
+# From here the gate is real: if bats runs and a test fails, the commit is blocked.
 bats tests/
 '''
 sources = ["tests/*.bats", "scripts/validate-frontmatter.sh"]
