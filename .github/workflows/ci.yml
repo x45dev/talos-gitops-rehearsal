@@ -58,9 +58,20 @@ jobs:
       # The RKA gate: six-field frontmatter, legal statuses, unique ids, the
       # id/filename convention, adr_status, the constitution, bundle-index
       # integrity (rule 7), the extraction record on archival (rule 8), and the
-      # spec-bundle lifecycle rules (9a, 9b).
+      # spec-bundle lifecycle rules (9a, 9b, 9c).
       - name: Validate knowledge frontmatter
         run: scripts/validate-frontmatter.sh knowledge
+
+      # The validator's own test suite (adopted from rka-template v0.1.0). This
+      # runs in CI and NOT in the Lefthook pre-commit hook: measured 2026-08-02 at
+      # 1m22s for 26 tests, against ~25s for the whole local gate, so it would
+      # quintuple the cost of every commit to re-prove rules that only change when
+      # the validator changes. CI is where it becomes binding, and CI is already
+      # the answer to the ungated-path problem this workflow was created for.
+      # bats is not on the runner; npx fetches bats-core the same way the
+      # markdownlint step fetches markdownlint-cli2.
+      - name: Test the frontmatter validator
+        run: npx --yes bats tests/
 
       # NOTE: .config/markdownlint/config.yaml sets `fix: true`, so markdownlint
       # repairs in place whether or not --fix is passed on the command line. In an

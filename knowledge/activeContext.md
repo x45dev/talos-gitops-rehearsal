@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.2.2
+version: 0.2.3
 date: 2026-08-02
 type: context
 ---
@@ -122,8 +122,11 @@ this repo's script before being fixed; the full divergence record is in
       each reproduced against this repo's script before being fixed.
       Recorded in `knowledge/progress.md`; the pin in `knowledge/context.md`
       moves v0.4.0 -> v0.1.0, because the old tag no longer exists upstream.
-- [ ] **Adopt upstream's validator test suite**: v0.1.0 ships
-      `tests/validate-frontmatter.bats` and this repo has none.
+- [x] **Adopt upstream's validator test suite** (2026-08-02): v0.1.0's
+      `tests/validate-frontmatter.bats` adopted, 26 tests green, covering all nine
+      rules including the three fail-opens closed the same day.
+      Runs in CI rather than the pre-commit hook, on a measured cost call recorded
+      in `knowledge/progress.md`; `mise run test` runs it locally.
 - [ ] **Decide whether this repo becomes a Copier consumer** of the re-cut
       `rka-template` (see `knowledge/progress.md`); left open for the maintainer.
 - [x] **Close the orphaned spin-up commitment** (2026-07-25, spec 002 T015): recorded

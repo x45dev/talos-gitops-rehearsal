@@ -1,0 +1,45 @@
+# FILE: .config/mise/tasks/test.toml
+#
+# DESCRIPTION:
+# Project test suites. Sub-suites are hidden (hide = true); run the aggregate
+# `mise run test` (alias `t`). Task names are colon-namespaced (`test:*`) to match
+# the `lint:*` convention.
+#
+# WHY NOT PART OF `mise run lint`: the lint aggregate runs in the Lefthook
+# pre-commit hook on every commit, and this suite is too slow to sit there.
+# Measured 2026-08-02 on the dev workstation: `bats tests/validate-frontmatter.bats`
+# takes 1m22s wall and `mise run test` 1m38s (26 tests, each spawning the validator
+# end to end at ~0.95s a run), against ~25s for the whole current pre-commit gate.
+# Adding it would roughly quintuple the cost of every commit to re-prove rules that
+# only change when the validator changes.
+# The suite is a CI gate instead (.github/workflows/ci.yml), which is where the
+# binding enforcement for this repo's governance checks already lives, and which
+# covers exactly the ungated paths CI was added to close: cloud agent sessions and
+# fresh clones without the mise toolchain.
+# Run it locally with `mise run test` when touching scripts/validate-frontmatter.sh.
+
+["test:frontmatter"]
+description = "Test: bats suite for scripts/validate-frontmatter.sh (RFC-003 rules 1-9)."
+hide = true
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+if [ ! -d "tests" ]; then
+  echo "No tests/ directory, skipping."
+  exit 0
+fi
+# Same two-state distinction the lint:frontmatter gate makes: a gate that cannot
+# run must fail loudly rather than skip. If the suite is present, bats must be too.
+if ! command -v bats > /dev/null 2>&1; then
+  echo "ERROR: tests/ exists but bats is not on PATH; the test gate cannot run." >&2
+  echo "       Fix: provision the pinned toolchain by running: mise install" >&2
+  exit 1
+fi
+bats tests/
+'''
+sources = ["tests/*.bats", "scripts/validate-frontmatter.sh"]
+
+[test]
+description = "Run all project test suites."
+alias = "t"
+depends = ["test:frontmatter"]
