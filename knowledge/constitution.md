@@ -2,7 +2,7 @@
 id: constitution
 title: Ephemeral GitOps IDP (Local Edition) - Constitution
 status: active
-version: 0.1.8
+version: 0.1.9
 date: 2026-08-02
 type: constitution
 ---
@@ -25,16 +25,14 @@ GitOps payload (`README.md`, the opening summary).
 The parity it is built to buy is deliberately narrow: the GitOps workflow and the
 application/workload overlay are meant to carry over unchanged to a later cloud
 (Cluster API / AWS) deployment; the cluster-provisioning mechanism itself is not
-(`README.md`, the opening summary; `docs/planning/PRD.md` Section 1, lines 19-25;
-Section 5, lines 102-118).
+(`README.md`, the opening summary; `docs/planning/PRD.md` Sections 1 and 5).
 The PRD is explicit that overstating this parity is the main way the project can
 disappoint, so the boundary is treated as a first-class requirement rather than an
-aspiration (`docs/planning/PRD.md` Section 1, lines 24-25).
+aspiration (`docs/planning/PRD.md` Section 1).
 
 Secrets are kept off Git via SOPS/AGE encryption at rest, with a software AGE key
 accepted for v1 and a hardware-bound (YubiKey) key deferred as a later hardening
-milestone (`README.md`, the opening summary; `docs/planning/PRD.md` Section 3.2,
-lines 62-69).
+milestone (`README.md`, the opening summary; `docs/planning/PRD.md` Section 3.2).
 
 ## Invariants
 
@@ -42,7 +40,7 @@ These must hold throughout the project, per the cited sources:
 
 1. **No plaintext secrets in Git.** No decrypted credentials are ever committed; the
    project AGE key lives at `.config/sops/age/keys.txt` and is gitignored
-   (`docs/planning/PRD.md` Section 3.2, lines 64-65; `README.md` "Quality Standards").
+   (`docs/planning/PRD.md` Section 3.2; `README.md` "Quality Standards").
    `mise`'s SOPS integration is configured to fail loudly rather than silently on
    decryption failure (the `sops.strict = true` setting in
    `.config/mise/config.toml`).
@@ -50,10 +48,9 @@ These must hold throughout the project, per the cited sources:
    how the cluster it runs on was provisioned: no `talosctl`-specific node names or
    labels, no local filesystem paths (`hostPath`, home-directory paths), and no
    reference to the Docker provisioner's network topology
-   (`clusters/workload/README.md` lines 10-26; `docs/planning/PRD.md` Section 5, lines
-   113-115).
+   (`clusters/workload/README.md` lines 10-26; `docs/planning/PRD.md` Section 5).
    This contract is what keeps the deferred CAPI milestone a bolt-on rather than a
-   rewrite (`docs/planning/PRD.md` Section 5, line 115) and it received a
+   rewrite (`docs/planning/PRD.md` Section 5) and it received a
    doubt-driven-development review before standing
    (`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` lines 114-115).
 3. **The idempotency bar.** Cluster existence is imperative but idempotent: re-running
@@ -61,16 +58,16 @@ These must hold throughout the project, per the cited sources:
    operation detects its actual precondition and self-heals rather than sleeping or
    silently skipping - a fixed `sleep 15` in an earlier task revision was explicitly
    called out as below this bar and fixed
-   (`docs/planning/PRD.md` Section 3.3, lines 71-79;
+   (`docs/planning/PRD.md` Section 3.3;
    `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` "Current state" bullet on the
    CAPD-era `validate` task, lines 34-35).
    Everything inside the cluster, by contrast, is declarative and continuously
-   reconciled by Flux from Git (`docs/planning/PRD.md` Section 3.3, line 78).
+   reconciled by Flux from Git (`docs/planning/PRD.md` Section 3.3).
 4. **Deterministic, zero-residue teardown.** Teardown must destroy the Talos cluster,
    prune Docker containers/networks, and leave zero residue in user-global state (no
    leftover context in `~/.kube/config` or `~/.talos/config`, no leftover `talosctl`
-   cluster-state directory) (`docs/planning/PRD.md` Section 3.3, lines 73-75, and
-   Section 7 "Cleanliness", line 153).
+   cluster-state directory) (`docs/planning/PRD.md` Section 3.3, and Section 7
+   "Cleanliness").
 
 ## Hard environmental constraints
 
@@ -95,7 +92,7 @@ These must hold throughout the project, per the cited sources:
 - **Cluster topology: 1 control-plane + 2 workers is required, not incidental.** Talos
   control-plane nodes are `NoSchedule`-tainted by default, so a single-worker topology
   would let the cross-node connectivity gate pass vacuously
-  (`docs/planning/PRD.md` Section 2, item 1, lines 31-32).
+  (`docs/planning/PRD.md` Section 2, item 1).
 - **Version pins are load-bearing, not incidental choices**: Cilium 1.18.11 (not
   1.19.x - see ADR-0002), Kubernetes 1.35.x, Flux `2.9.0` (pinned because Flux's
   Cilium-adoption reconcile behavior is version-dependent, the `flux2` entry in
@@ -110,9 +107,8 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
 - **Three engineering gates must pass** before the pipeline is built on top, and remain
   active afterward: Cilium/eBPF compatibility, cross-node pod connectivity (provably
   crossing a node boundary), and `LoadBalancer` IP allocation *and* host reachability
-  as separate, both-required mechanisms (`docs/planning/PRD.md` Section 4, lines
-  82-100).
-- **Success metrics** (`docs/planning/PRD.md` Section 7, lines 147-153):
+  as separate, both-required mechanisms (`docs/planning/PRD.md` Section 4).
+- **Success metrics** (`docs/planning/PRD.md` Section 7):
   - Spin-up time under 10 minutes from `mise` command to every payload
     `HelmRelease`/`Kustomization` reporting `Ready`.
     Deliberately uninstrumented in v1 (ADR-0010): the target stands, but nothing measures it, so
@@ -142,8 +138,8 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
   173-179.)
 - **Hardware-bound (YubiKey) secret decryption is not a v1 requirement.** It was
   originally written as a hard requirement and was explicitly reclassified as a
-  follow-on hardening milestone (`docs/planning/PRD.md` Section 3.2, lines 66-69;
-  Section 8, line 158).
+  follow-on hardening milestone (`docs/planning/PRD.md` Section 3.2;
+  Section 8).
 - **Multi-user / access-restricted identity is out of scope.** Dex's GitHub connector
   has no org/team restriction; this is accepted for "a single-user local ephemeral IDP"
   and flagged to revisit only if the tunnel ever serves more than one person
@@ -151,13 +147,12 @@ states a unified "definition of done" verbatim, so this synthesis is an inferenc
 - **Fully declarative cluster provisioning is not a v1 goal.** Local cluster
   provisioning is an imperative (if idempotent) `talosctl` invocation; fully
   declarative provisioning is explicitly deferred to the CAPI milestone
-  (`docs/planning/PRD.md` Section 3.3, lines 79-80).
+  (`docs/planning/PRD.md` Section 3.3).
 - **State persistence / data re-hydration across ephemeral cycles is unresolved and
   explicitly not v1 work.** Recorded as an open decision, to be addressed only if a
   real need for re-hydrating database state across reboots emerges
-  (`docs/planning/PRD.md` Section 6, line 141;
-  `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` "Decisions" - "Open", lines
-  210-212).
+  (`docs/planning/PRD.md` Section 6;
+  `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` "Decisions" - "Open").
 
 ## Open questions for the human
 
