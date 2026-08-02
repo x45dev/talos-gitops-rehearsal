@@ -2,7 +2,7 @@
 id: context
 title: Ephemeral GitOps IDP (Local Edition) - Context
 status: active
-version: 0.2.9
+version: 0.2.10
 date: 2026-08-02
 type: context
 ---
@@ -31,14 +31,14 @@ application-overlay carry over, the provisioning substrate does not
 
 - **Cluster substrate:** Talos Linux, provisioned by `talosctl cluster create`'s Docker
   provisioner (1 control-plane + 2 workers), Kubernetes 1.35.x
-  (`docs/planning/PRD.md` Section 2, lines 29-33).
+  (`docs/planning/PRD.md` Section 2).
   No CAPI/CAPD in v1 - see ADR-0001.
 - **CNI:** Cilium **1.18.11** (not 1.19.x - see ADR-0002), eBPF-native, no kube-proxy
   (`kubeProxyReplacement=true`), KubePrism as the in-cluster API endpoint
   (`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` lines 61-63).
   Installed imperatively first (Flux cannot deliver its own CNI prerequisite), then
   adopted in place by a Flux `HelmRelease` with matching name/namespace/version/values
-  (`docs/planning/PRD.md` Section 3.1, lines 49-53).
+  (`docs/planning/PRD.md` Section 3.1).
 - **GitOps:** FluxCD, pinned to `2.9.0` because its Cilium-adoption reconcile behavior
   is version-dependent (the `flux2` entry in `.config/mise/config.toml`'s `[tools]`
   table).
@@ -105,7 +105,7 @@ application-overlay carry over, the provisioning substrate does not
   See ADR-0005.
 - **Aggregator pattern.** `infrastructure/kustomization.yaml` aggregates components so
   that adding one does not require editing the root `Kustomization`
-  (`docs/planning/PRD.md` Section 6, line 144; found and fixed during the Phase 2
+  (`docs/planning/PRD.md` Section 6; found and fixed during the Phase 2
   doubt-driven-development review,
   `docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` line 115).
 - **The idempotency bar.** Every operation in the imperative (cluster-existence) layer
@@ -116,7 +116,7 @@ application-overlay carry over, the provisioning substrate does not
 - **Bootstrap-imperative, day-2-declarative pattern.** Cilium's first install is
   imperative by necessity (Flux's own controllers need a working CNI to run); the
   in-tree `HelmRelease` then adopts that release in place so day-2 changes flow through
-  Git (`docs/planning/PRD.md` Section 3.1, lines 49-53).
+  Git (`docs/planning/PRD.md` Section 3.1).
   This pattern is explicitly meant to generalize to any future CRD-provider bootstrap
   need (ADR-0005 consequences).
 - **Persistent-credential, scratch-branch local iteration.** See ADR-0004: a
@@ -173,6 +173,5 @@ All recorded directly in `clusters/workload/README.md` "Known limitations" (line
 ## Open question carried from the constitution
 
 State-persistence / data re-hydration across ephemeral cluster cycles is unresolved
-and explicitly deferred pending real need (`docs/planning/PRD.md` Section 6, line 141;
-`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` "Decisions - Open", lines
-210-212).
+and explicitly deferred pending real need (`docs/planning/PRD.md` Section 6;
+`docs/planning/PLAN-ephemeral-gitops-idp-2026-07-05.md` "Decisions - Open").

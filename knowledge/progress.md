@@ -2,7 +2,7 @@
 id: progress
 title: Progress
 status: active
-version: 0.1.20
+version: 0.1.21
 date: 2026-08-02
 type: context
 ---
@@ -104,11 +104,24 @@ phased-status section, and the review's survey of this repo.
   "Quality Standards", "Architecture", the opening summary) or the configuration key
   itself (the `flux2` entry in `[tools]`, the `sops.strict = true` setting) - so they
   survive edits to the file they point at.
-  **The convention this establishes:** cite a file that still churns by anchor, and
-  keep line numbers for the frozen historical documents under `docs/planning/`, where
-  they are stable and precise. Not yet gated; a line number is trivially checkable for
-  existence but not for still meaning what it meant, which is exactly how these nine
-  drifted while pointing at real lines the whole time.
+  **The convention this establishes:** cite a file that still churns by anchor.
+  Not gated; a line number is trivially checkable for existence but not for still
+  meaning what it meant, which is exactly how these nine drifted while pointing at
+  real lines the whole time.
+- `docs/planning/` citations audited the same day (2026-08-02), all 73 of them, which
+  is what the anchoring pass had deliberately left.
+  The split turned out to be clean along a line worth remembering: the PLAN's 49 bare
+  line citations all still resolve, because that document is genuinely frozen, while
+  every one of the PRD's 23 had a Section reference and 9 of those carried a line range
+  that had slid roughly five or six lines - Section 7 "Success Metrics" cited as lines
+  147-153 when it now spans 153-160, and so on. ADR-0010's 2026-07-25 edit to Section 7
+  is the likeliest cause.
+  So the PRD was never quite the frozen document the earlier convention assumed.
+  The fix took the redundancy rather than the precision: every PRD citation already
+  named its Section, so the line ranges were dropped and the Sections kept.
+  Sections do not move, the sections in question span 8-20 lines, and all 35 Section
+  references across `knowledge/` now resolve (checked by parsing the PRD's own
+  headings, not by eye). The PLAN's line citations are left alone, being correct.
 - CI gate added (2026-07-25): `.github/workflows/ci.yml` re-runs the governance
   and docs checks (frontmatter validator, markdownlint, em dash, shellcheck) on
   pull requests and pushes to `main`.
@@ -181,16 +194,10 @@ required of v1. What follows is deferred by design, not outstanding work.
 - ~~The validator has no tests of its own.~~ **done 2026-08-02**: upstream's
   `tests/validate-frontmatter.bats` adopted, 26 tests green in CI (see
   "What works").
-- The line-number citations into `docs/planning/` are **not audited**. The
-  2026-08-02 pass fixed the citations into churning files and stopped there; roughly
-  78 citations point into the PRD, the PLAN, and the ZOR reviews, and spot checks
-  found at least one already off (the constitution cites "Section 1, lines 19-25"
-  where Section 1 begins at line 24).
-  Those documents are ungoverned working material (ADR-0008) and mostly frozen, so
-  the drift is slower and the stakes lower, but "mostly frozen" is not "frozen":
-  ADR-0010 edited PRD Section 7 as recently as 2026-07-25.
-  Auditing them is a self-contained piece of work, deliberately not bundled into the
-  smaller fix.
+- ~~The line-number citations into `docs/planning/` are not audited.~~
+  **done 2026-08-02** (see "What works"): all 73 resolved, the PLAN's 49 were correct,
+  and the PRD's drifting line ranges were dropped in favour of the Section references
+  they already carried.
 - **Open question for the maintainer, raised 2026-08-02.** `rka-template` is no
   longer a repo to copy conventions out of by hand: it is now a Copier template
   with a `copier.yml` and an answers file, designed to be applied and re-applied.
