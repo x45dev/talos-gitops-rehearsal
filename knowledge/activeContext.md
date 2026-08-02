@@ -2,7 +2,7 @@
 id: activeContext
 title: Active Context
 status: active
-version: 0.2.3
+version: 0.2.4
 date: 2026-08-02
 type: context
 ---
@@ -127,6 +127,13 @@ this repo's script before being fixed; the full divergence record is in
       rules including the three fail-opens closed the same day.
       Runs in CI rather than the pre-commit hook, on a measured cost call recorded
       in `knowledge/progress.md`; `mise run test` runs it locally.
+- [x] **Promote ADR-0010** to `active` (2026-08-02): the uninstrumented-metric
+      decision has seasoned since 2026-07-25 with nothing contradicting it, and no
+      governed document is at `draft` now.
+      The same change corrected a consequence bullet that had been overtaken one
+      day after the ADR was written: it claimed feature 002's surviving scope still
+      proved constitution invariants 3 and 4, and 002 was archived unexecuted on
+      2026-07-26. The decision itself is unchanged.
 - [ ] **Decide whether this repo becomes a Copier consumer** of the re-cut
       `rka-template` (see `knowledge/progress.md`); left open for the maintainer.
 - [x] **Close the orphaned spin-up commitment** (2026-07-25, spec 002 T015): recorded
