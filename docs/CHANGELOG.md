@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **governance:** Retire the stale devcontainer coupling limitation
 - **governance:** Cite churning files by anchor instead of line number
 - **governance:** Drop the PRD's drifting line ranges, keep its Section references
+- **ci:** Describe the gate's actual scope now that it runs the bats suite
 
 ### Fixed
 

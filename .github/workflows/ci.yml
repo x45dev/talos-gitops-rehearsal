@@ -16,11 +16,9 @@
 # mise skips a missing env file rather than failing. This workflow still installs only
 # the few tools the governance gates need and calls them directly, which is now a
 # scope choice rather than a hard constraint and is worth revisiting. The trade-off is
-# unchanged in shape but no longer a strict subset: this workflow runs most of
-# `mise run lint` (frontmatter, markdown, em-dash, shell) but not vale's full config
-# or the lychee link check, both of which stay local - and it additionally runs the
-# frontmatter validator's bats suite, which `mise run lint` deliberately does NOT
-# (see .config/mise/tasks/test.toml for the measured reason it is not in pre-commit).
+# unchanged: it covers a subset of `mise run lint` (frontmatter, the validator's bats
+# suite, markdown, em-dash, shell), not vale's full config or the lychee link check,
+# both of which stay local.
 #
 # SCOPE: no cluster tests. The test-talos-spike chain needs Docker, talosctl and a
 # real Talos cluster; it is a local/host concern and is deliberately out of scope
@@ -64,12 +62,12 @@ jobs:
       - name: Validate knowledge frontmatter
         run: scripts/validate-frontmatter.sh knowledge
 
-      # The validator's own test suite (adopted from rka-template v0.1.0). This
-      # runs in CI and NOT in the Lefthook pre-commit hook: measured 2026-08-02 at
-      # 1m22s for 26 tests, against ~25s for the whole local gate, so it would
-      # quintuple the cost of every commit to re-prove rules that only change when
-      # the validator changes. CI is where it becomes binding, and CI is already
-      # the answer to the ungated-path problem this workflow was created for.
+      # The validator's own test suite (adopted from rka-template v0.1.0). It runs
+      # in the local pre-commit gate too, where mise's `sources` cache skips it
+      # unless the validator or the tests changed. Here it always runs: CI checks
+      # out fresh and holds no cache, which is the point - local caching is a speed
+      # optimisation, not the enforcement point, and this workflow exists for the
+      # paths that never see the local gate at all.
       # bats is not on the runner; npx fetches bats-core the same way the
       # markdownlint step fetches markdownlint-cli2.
       - name: Test the frontmatter validator
